@@ -13,6 +13,8 @@
 #define A1 0x03
 #define CSET 0x03
 #define CUA 0x07
+#define C0 0x00
+#define C1 0x40
 #define RECEIVER 0
 #define WRITER 1
 
@@ -192,7 +194,13 @@ int validateUA(unsigned char data,int* stateUa){
   }
 }
 /*
-*
+*@param data byte to alter the state machine
+*@param stateRcv state of the machine to be altered
+*@ret 0->continue
+*     1->machine validated a SET trama
+*     2->machine validated a Data trama with N(r)=0
+*     3->machine valdiated a DAta trama with N(r)=1
+*     -1->error end aplication
 */
 int validateRcv(unsigned char data,int* stateRcv){
   switch(*stateRcv){
@@ -220,7 +228,7 @@ int validateRcv(unsigned char data,int* stateRcv){
     }else if(data == C0){
       *stateRcv=6;
     }else if(data == C1){
-      *stateRcv=10;
+      *stateRcv=9;
     }else{
       *stateRcv=0;
     }
@@ -258,28 +266,19 @@ int validateRcv(unsigned char data,int* stateRcv){
     return 0;
 
     case 7:
-    if(data == BCC2){
+    if(data == F){
       *stateRcv = 8;
+      return 2;
     }else{
       *stateRcv=7;
     }return 0;
 
     case 8:
-    if(data == F){
-      *stateRcv=9;
-      return 4;
-    }
-    else{
-      *stateRcv=0;
-      return 0;
-    }
-
-    case 9:
     return -1;
 
-    case 10:
+    case 9:
     if(data == BCC1){
-      *stateRcv=11;
+      *stateRcv=10;
     }else if(data== F){
       *stateRcv=1;
     }	else{
@@ -287,16 +286,16 @@ int validateRcv(unsigned char data,int* stateRcv){
     }
     return 0;
 
-    case 11:
+    case 10:
     if(data == F){
-      *stateRcv=12;
-      return 5;
+      *stateRcv=11;
+      return 3;
     }
     else{
-      *stateRcv=0;
+      *stateRcv=10;
       return 0;
     }
-    case 12:
+    case 11:
     return -1;
     default:
     return -1;
@@ -332,6 +331,40 @@ void config(int vtime,int vmin,int fd){
   printf("New termios structure set\n");
 }
 
+void destuffing(char sent,char* data,char* bcc,int* escape,int* destufcount){
+
+	if(*escape==0 && sent != 0x7d){
+		data[*destufcount]=sent;
+		*bcc=*bcc ^ data[*destufcount];
+		*destufcount++;
+		return 0;
+	}
+	else if(*escape==0 && sent == 0x7d){
+		*escape=1;
+		return 0;
+
+
+	}
+	else if(*escape==1 && sent == 0x5e){
+		data[*destufcount]=0x7e;
+		*bcc=*bcc ^ data[*destufcount];
+		*destufcount++;
+		*escape=0;
+		return 0;
+	}
+
+	else if(*escape==1 && sent == 0x5d){
+		data[*destufcount]=0x7d;
+		*bcc=*bcc ^ data[*destufcount];
+		*destufcount++;
+		*escape=0;
+		return 0;
+	}
+	else{
+		return -1;
+	}
+}
+
 void llopen((int fd,int mode){
 
   char buf[255];
@@ -359,12 +392,35 @@ void llopen((int fd,int mode){
     res=write(fd,ua,5);
 
   }
+  else{
+    while(rcv==0){
+		res=write(fd,set,5);
+
+
+
+		while(counter!=5){
+			res= read(fd,buf,1);
+			if(res!=0){
+				recv[counter]=buf[0];
+				counter++;
+			}
+			if(res==0 || buf[0]==0)
+				stop=1;
+		}
+
+		if(validateUA(&recv)==1)
+			rcv=1;
+	}
+
+
+  }
 }
 
 int main(int argc,unsigned char** argv)
 {
   int fd,c;
   struct termios oldtio;
+  int user = RECEIVER;
 
   fd = open(argv[1], O_RDWR | O_NOCTTY );
   if (fd <0) {perror(argv[1]); exit(-1); }
@@ -374,7 +430,7 @@ int main(int argc,unsigned char** argv)
     exit(-1);
   }
 
-  //llopen(fd,RECEIVER);
+  //llopen(fd,user);
 
 
 
