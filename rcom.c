@@ -3,12 +3,12 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <stdio.h>
-#define NELEMS(x) (sizeof(x) / sizeof(x[0]))
 #define BAUDRATE B38400
 #define _POSIX_SOURCE 1
 #define FALSE 0
 #define TRUE 1
 #define F 0x7E
+#define ESC_BYTE 0x7D
 #define A0 0x01
 #define A1 0x03
 #define CSET 0x03
@@ -466,37 +466,42 @@ int destuffing(char sent,char* data,char* bcc,int* escape,int* destufcount){
   }
 }
 
-void stuffing(unsigned char* data, unsigned char* stuffed){
+void stuffing(unsigned char* data, unsigned char* stuffed, int n){
   int i,r;
   r=0;
-  for(i=0;i<NELEMS(data);i++){
-    if(data[i]=0x7E){
-      stuffed[r]=0x7D;
-      stuffed[r+1]=0x5E;
+  for(i=0;i<n;i++){
+    if(data[i]==F){
+      stuffed[r]=ESC_BYTE;
+      stuffed[++r]=0x5E;
       r++;
+      
     }
-    if(data[i]=0x7D){
-      stuffed[r]=0x7D;
-      stuffed[r+1]=0x5D;
+    else if(data[i]==ESC_BYTE){
+      stuffed[r]=ESC_BYTE;
+      stuffed[++r]=0x5D;
       r++;
+      
     }
-    r++;
+    else{
+      stuffed[r]=data[i];
+      r++;}
+    
   }
 }
 
-void BCC2(unsigned char* data, unsigned char* final){
+void BCC2(unsigned char* data, unsigned char* final, int n){
   int i;
-  for (i=0;i<NELEMS(data)-1;i++){
+  for (i=0;i<n-1;i++){
     *final=data[i]^data[i+1];
   }
 }
 
-void addData(unsigned char* data, unsigned char* final, int c){
+void addData(unsigned char* data, unsigned char* final, int c, int n){
   int i;
   unsigned char bcc2;
-  BCC2(data,&bcc2);
+  BCC2(data,&bcc2, n);
 
-  for (i=0;i<NELEMS(data) + 4;i++){
+  for (i=0;i<n + 4;i++){
     final[i+4]=data[i];
   }
 
@@ -512,8 +517,8 @@ void addData(unsigned char* data, unsigned char* final, int c){
   }
 
   final[3]=final[1]^final[2];
-  final[NELEMS(data)+5]=bcc2;
-  final[NELEMS(data)+6]=F;
+  final[n+5]=bcc2;
+  final[n+6]=F;
 }
 
 void llopen(int fd,int mode){
@@ -574,6 +579,33 @@ void llopen(int fd,int mode){
   }
 }
 
+int llread(int fd, char * buffer){
+  char rec;
+  char buf[255];
+  int r;
+  int stateData;
+  
+  printf("a começar a ler...\n");
+  int i=0;
+  do{
+  
+  r=read(fd,buf,1);
+  if(r!=0)
+    rec=buf[0];
+  else if(r==0){
+    printf("nothing received!\n");
+    rec=0x11;}  
+  if (stateData==7){
+    buffer[i]=rec;
+    i++;}
+  
+  
+  }while(validateRcv(rec, stateData)==0);
+  return (i--);
+}
+
+//falta mandar mensagens ao emissor
+
 void printChar(unsigned char* cena,int tam){
   int i;
   for(i=0; i<tam;i++){
@@ -597,6 +629,7 @@ int main(int argc,unsigned char** argv)
 
     //llopen(fd,user);*/
 
+    /*
     unsigned char test[5];
     createRR(test,0,user);
     printChar(test,5);
@@ -606,6 +639,37 @@ int main(int argc,unsigned char** argv)
     printChar(test,5);
     createREJ(test,1,user);
     printChar(test,5);
+
+    */
+
+    unsigned char data[5];
+    data[0]=0x11;
+    data[1]=F;
+    data[2]=0x7d;
+    data[3]=0x69;
+    data[4]=0x01;
+
+    printChar(data,5);
+    printf("--------------\n");
+    char* stuffed_tmp[10];
+    stuffing(data,stuffed_tmp,5);
+    printChar(stuffed_tmp,10);
+
+    printf("--------------\n");
+
+    char* destuffed_tmp[10];
+    int esc=0;
+    int i=0;
+    char bcctmp=0x00;
+    for(i=0;i<10;i++){
+       printf("iteraçao\n");
+
+      destuffing(stuffed_tmp,destuffed_tmp,&bcctmp, &esc,i);
+      printf("iteraçao\n");
+    }
+
+    printChar(destuffed_tmp,10);
+
 
 
     sleep(3);
