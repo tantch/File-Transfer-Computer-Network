@@ -433,23 +433,20 @@ void config(int vtime,int vmin,int fd){
 }
 
 int destuffing(char sent,char* data,char* bcc,int* escape,int* destufcount){
-
   if(*escape==0 && sent != 0x7d){
-    data[*destufcount]=sent;
+    data[(*destufcount)]=sent;
     *bcc=*bcc ^ data[*destufcount];
-    *destufcount++;
+    (*destufcount)++;
     return 0;
   }
   else if(*escape==0 && sent == 0x7d){
     *escape=1;
     return 0;
-
-
   }
   else if(*escape==1 && sent == 0x5e){
     data[*destufcount]=0x7e;
     *bcc=*bcc ^ data[*destufcount];
-    *destufcount++;
+    (*destufcount)++;
     *escape=0;
     return 0;
   }
@@ -457,7 +454,7 @@ int destuffing(char sent,char* data,char* bcc,int* escape,int* destufcount){
   else if(*escape==1 && sent == 0x5d){
     data[*destufcount]=0x7d;
     *bcc=*bcc ^ data[*destufcount];
-    *destufcount++;
+    (*destufcount)++;
     *escape=0;
     return 0;
   }
@@ -466,7 +463,7 @@ int destuffing(char sent,char* data,char* bcc,int* escape,int* destufcount){
   }
 }
 
-void stuffing(unsigned char* data, unsigned char* stuffed, int n){
+int stuffing(unsigned char* data, unsigned char* stuffed, int n){
   int i,r;
   r=0;
   for(i=0;i<n;i++){
@@ -474,19 +471,20 @@ void stuffing(unsigned char* data, unsigned char* stuffed, int n){
       stuffed[r]=ESC_BYTE;
       stuffed[++r]=0x5E;
       r++;
-      
+
     }
     else if(data[i]==ESC_BYTE){
       stuffed[r]=ESC_BYTE;
       stuffed[++r]=0x5D;
       r++;
-      
+
     }
     else{
       stuffed[r]=data[i];
       r++;}
-    
+
   }
+  return r;
 }
 
 void BCC2(unsigned char* data, unsigned char* final, int n){
@@ -496,7 +494,7 @@ void BCC2(unsigned char* data, unsigned char* final, int n){
   }
 }
 
-void addData(unsigned char* data, unsigned char* final, int c, int n){
+void completeData(unsigned char* data, unsigned char* final,int c, int n){
   int i;
   unsigned char bcc2;
   BCC2(data,&bcc2, n);
@@ -517,8 +515,8 @@ void addData(unsigned char* data, unsigned char* final, int c, int n){
   }
 
   final[3]=final[1]^final[2];
-  final[n+5]=bcc2;
-  final[n+6]=F;
+  final[n+4]=bcc2;
+  final[n+5]=F;
 }
 
 void llopen(int fd,int mode){
@@ -584,22 +582,22 @@ int llread(int fd, char * buffer){
   char buf[255];
   int r;
   int stateData;
-  
+
   printf("a começar a ler...\n");
   int i=0;
   do{
-  
+
   r=read(fd,buf,1);
   if(r!=0)
     rec=buf[0];
   else if(r==0){
     printf("nothing received!\n");
-    rec=0x11;}  
+    rec=0x11;}
   if (stateData==7){
     buffer[i]=rec;
     i++;}
-  
-  
+
+
   }while(validateRcv(rec, stateData)==0);
   return (i--);
 }
@@ -609,7 +607,7 @@ int llread(int fd, char * buffer){
 void printChar(unsigned char* cena,int tam){
   int i;
   for(i=0; i<tam;i++){
-    printf("char[%i]:%x\n",i,cena[i]);
+    printf("char[%i]:0x%x\n",i,cena[i]);
   }
 }
 
@@ -651,25 +649,26 @@ int main(int argc,unsigned char** argv)
 
     printChar(data,5);
     printf("--------------\n");
-    char* stuffed_tmp[10];
-    stuffing(data,stuffed_tmp,5);
-    printChar(stuffed_tmp,10);
+    unsigned char stuffed_tmp[10];
+    int red=stuffing(data,stuffed_tmp,5);
+    printChar(stuffed_tmp,red);
 
-    printf("--------------\n");
+printf("--------------\n");
 
-    char* destuffed_tmp[10];
+    unsigned char destuffed_tmp[5];
     int esc=0;
     int i=0;
-    char bcctmp=0x00;
-    for(i=0;i<10;i++){
-       printf("iteraçao\n");
-
-      destuffing(stuffed_tmp,destuffed_tmp,&bcctmp, &esc,i);
-      printf("iteraçao\n");
+    int j=0;
+    unsigned char bcctmp=0x00;
+    for(j=0;j<red;j++){
+      destuffing(stuffed_tmp[j],destuffed_tmp,&bcctmp, &esc,&i);
     }
-
-    printChar(destuffed_tmp,10);
-
+    printf("i:%i\n",i);
+    printChar(destuffed_tmp,i);
+printf("--------------\n");
+    unsigned char final[red+6];
+    completeData(stuffed_tmp,final,0,red);
+    printChar(final,red+6);
 
 
     sleep(3);
