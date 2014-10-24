@@ -3,7 +3,7 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <stdio.h>
-
+#define NELEMS(x) (sizeof(x) / sizeof(x[0]))
 #define BAUDRATE B38400
 #define _POSIX_SOURCE 1
 #define FALSE 0
@@ -15,13 +15,11 @@
 #define CUA 0x07
 #define C0 0x00
 #define C1 0x40
+#define CRR1 0x05
+#define CRR2 0x85
 #define RECEIVER 0
 #define WRITER 1
-
-
-#define BIT(n)    (0x01<<n)
-
-
+#define BIT(N) (0x01<<N)
 
 //criar as tramas
 
@@ -55,21 +53,18 @@ void createSet(unsigned char* set,int mode){
   set[3]=set[1]^set[2];
   set[4]=F;
 }
+//validar por maquina de estado
 
-/*
-*@param rr array of bytes to be set into a RR trama
-*@param Nr defines Nr
-*/
 void createRR(unsigned char* rr,int Nr){
 
   rr[0]=F;
-  rr[1]=A;
+  rr[1]=A0;
   char tmp = 0x05;
   if(Nr==1){
     tmp = tmp | BIT(8);
   }
   rr[2]=tmp;
-  rr[3]=rr[0]^r[1]^r[2];
+  rr[3]=rr[0]^rr[1]^rr[2];
   rr[4]=F;
 
 }
@@ -81,18 +76,19 @@ void createRR(unsigned char* rr,int Nr){
 void createREJ(unsigned char* rej,int Nr){
 
   rej[0]=F;
-  rej[1]=A;
+  rej[1]=A0;
   char tmp = 0x01;
   if(Nr==1){
     tmp = tmp | BIT(8);
   }
   rej[2]=tmp;
-  rej[3]=rr[0]^r[1]^r[2];
+  rej[3]=rej[1]^rej[2];
   rej[4]=F;
 
 }
 
 //validar por maquina de estado
+
 
 /*
 *@param data byte a comparar para alterar a M.E.
@@ -298,7 +294,7 @@ int validateRcv(unsigned char data,int* stateRcv){
     return -1;
 
     case 6:
-    if(data == BCC1){
+    if(data == (A1^C0)){
       *stateRcv=7;
     }else if(data == F){
       *stateRcv=1;
@@ -319,7 +315,7 @@ int validateRcv(unsigned char data,int* stateRcv){
     return -1;
 
     case 9:
-    if(data == BCC1){
+    if(data == (A1 ^ C1)){
       *stateRcv=10;
     }else if(data== F){
       *stateRcv=1;
@@ -343,6 +339,59 @@ int validateRcv(unsigned char data,int* stateRcv){
     return -1;
   }
 }
+
+int validateSET(unsigned char set,int* stateSet){
+
+  switch(*stateSet){
+    case 0:
+    if(set == F){
+      *stateSet=1;
+    }
+    return 0;
+    case 1:
+    if(set == F){
+      *stateSet=1;
+    }else if(set == A1){
+      *stateSet=2;
+    }else{
+      *stateSet=0;
+    }
+    return 0;
+    case 2:
+    if(set == F){
+      *stateSet=1;
+    }else if(set == CSET){
+      *stateSet=3;
+    }else{
+      *stateSet=0;
+    }
+    return 0;
+    case 3:
+    if(set == F){
+      *stateSet=1;
+    }else if(set == (A1 ^ CSET)){
+      *stateSet=4;
+    }else{
+      *stateSet=0;
+    }
+    return 0;
+    case 4:
+    if(set == F){
+      *stateSet=5;
+      return 1;
+    }
+
+    else{
+      *stateSet=0;
+    }
+    return 0;
+
+  }
+
+
+}
+
+
 
 /*configures the configurations of the serial port
 *
@@ -373,88 +422,152 @@ void config(int vtime,int vmin,int fd){
   printf("New termios structure set\n");
 }
 
-void destuffing(char sent,char* data,char* bcc,int* escape,int* destufcount){
+int destuffing(char sent,char* data,char* bcc,int* escape,int* destufcount){
 
-	if(*escape==0 && sent != 0x7d){
-		data[*destufcount]=sent;
-		*bcc=*bcc ^ data[*destufcount];
-		*destufcount++;
-		return 0;
-	}
-	else if(*escape==0 && sent == 0x7d){
-		*escape=1;
-		return 0;
+  if(*escape==0 && sent != 0x7d){
+    data[*destufcount]=sent;
+    *bcc=*bcc ^ data[*destufcount];
+    *destufcount++;
+    return 0;
+  }
+  else if(*escape==0 && sent == 0x7d){
+    *escape=1;
+    return 0;
 
 
-	}
-	else if(*escape==1 && sent == 0x5e){
-		data[*destufcount]=0x7e;
-		*bcc=*bcc ^ data[*destufcount];
-		*destufcount++;
-		*escape=0;
-		return 0;
-	}
+  }
+  else if(*escape==1 && sent == 0x5e){
+    data[*destufcount]=0x7e;
+    *bcc=*bcc ^ data[*destufcount];
+    *destufcount++;
+    *escape=0;
+    return 0;
+  }
 
-	else if(*escape==1 && sent == 0x5d){
-		data[*destufcount]=0x7d;
-		*bcc=*bcc ^ data[*destufcount];
-		*destufcount++;
-		*escape=0;
-		return 0;
-	}
-	else{
-		return -1;
-	}
+  else if(*escape==1 && sent == 0x5d){
+    data[*destufcount]=0x7d;
+    *bcc=*bcc ^ data[*destufcount];
+    *destufcount++;
+    *escape=0;
+    return 0;
+  }
+  else{
+    return -1;
+  }
 }
 
-void llopen((int fd,int mode){
+void stuffing(unsigned char* data, unsigned char* stuffed){
+  int i,r;
+  r=0;
+  for(i=0;i<NELEMS(data);i++){
+    if(data[i]=0x7E){
+      stuffed[r]=0x7D;
+      stuffed[r+1]=0x5E;
+      r++;
+    }
+    if(data[i]=0x7D){
+      stuffed[r]=0x7D;
+      stuffed[r+1]=0x5D;
+      r++;
+    }
+    r++;
+  }
+}
+
+void BCC2(unsigned char* data, unsigned char* final){
+  int i;
+  for (i=0;i<NELEMS(data)-1;i++){
+    *final=data[i]^data[i+1];
+  }
+}
+
+void addData(unsigned char* data, unsigned char* final, int c){
+  int i;
+  unsigned char bcc2;
+  BCC2(data,&bcc2);
+
+  for (i=0;i<NELEMS(data) + 4;i++){
+    final[i+4]=data[i];
+  }
+
+  final[0]=F;
+  final[1]=A1;
+
+  if (c==0){
+    final[2]=C0;
+  }
+
+  if (c==1){
+    final[2]=C1;
+  }
+
+  final[3]=final[1]^final[2];
+  final[NELEMS(data)+5]=bcc2;
+  final[NELEMS(data)+6]=F;
+}
+
+void llopen(int fd,int mode){
 
   char buf[255];
   unsigned char recv;
   int i;
   int res;
   int rcv=0;
+  int state=0;
+  int ret=0;
   config(30,0,fd);
 
   if(mode == RECEIVER){
     unsigned char ua[5];
-    createUA(&ua);
+    createUA(ua,mode);
 
     do{
       res= read(fd,buf,1);
       if(res!=0){
         recv=buf[0];
+        ret=validateSET(recv,&state);
       }
       else if(res==0){
-        recv=0x11;
+        ret=0;
+        //state=0;
       }
 
-    }while(validateSET(recv)==0);
+    }while(ret==0);
 
     res=write(fd,ua,5);
 
   }
   else{
     while(rcv==0){
-		res=write(fd,set,5);
+      unsigned char set[5];
+      createSet(set,mode);
+      res=write(fd,set,5);
 
 
+      do{
+        res= read(fd,buf,1);
+        if(res!=0){
+          recv=buf[0];
+          ret=validateUA(recv,&state);
+        }
+        else if(res==0){
+          ret=-1;
+        }
+      }while(ret==0);
 
-		while(counter!=5){
-			res= read(fd,buf,1);
-			if(res!=0){
-				recv[counter]=buf[0];
-				counter++;
-			}
-			if(res==0 || buf[0]==0)
-				stop=1;
-		}
-
-		if(validateUA(&recv)==1)
-			rcv=1;
-	}
+      if(ret==1){
+        rcv=1;
+      }
+    }
 
 
+  }
+}
+
+void printChar(unsigned char* cena,int tam){
+  int i;
+  for(i=0; i<tam;i++){
+    printf("char[%i]:%x\n",i,cena[i]);
   }
 }
 
@@ -464,20 +577,22 @@ int main(int argc,unsigned char** argv)
   struct termios oldtio;
   int user = RECEIVER;
 
-  fd = open(argv[1], O_RDWR | O_NOCTTY );
+  /*fd = open(argv[1], O_RDWR | O_NOCTTY );
   if (fd <0) {perror(argv[1]); exit(-1); }
 
-  if ( tcgetattr(fd,&oldtio) == -1){
-    perror("tcgetattr");
-    exit(-1);
+    if ( tcgetattr(fd,&oldtio) == -1){
+      perror("tcgetattr");
+      exit(-1);
+    }
+
+    //llopen(fd,user);*/
+
+    unsigned char test[5];
+    createSet(test,user);
+    printChar(test,5);
+
+    sleep(3);
+    tcsetattr(fd,TCSANOW,&oldtio);
+    close(fd);
+    exit(0);
   }
-
-  //llopen(fd,user);
-
-
-
-  sleep(3);
-  tcsetattr(fd,TCSANOW,&oldtio);
-  close(fd);
-  exit(0);
-}
