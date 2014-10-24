@@ -15,8 +15,10 @@
 #define CUA 0x07
 #define C0 0x00
 #define C1 0x40
-#define CRR1 0x05
-#define CRR2 0x85
+#define CRR0 0x05
+#define CRR1 0x85
+#define CREJ0 0x01
+#define CREJ1 0x81
 #define RECEIVER 0
 #define WRITER 1
 #define BIT(N) (0x01<<N)
@@ -42,7 +44,7 @@ void createUA(unsigned char* ua,int mode){
 *@param set array of bytes to be set into a set trama
 *@param mode defines receiver or writter mode
 */
-void createSet(unsigned char* set,int mode){
+void createSET(unsigned char* set,int mode){
   set[0]=F;
   if(mode == WRITER){
     set[1]=A1;
@@ -55,16 +57,20 @@ void createSet(unsigned char* set,int mode){
 }
 //validar por maquina de estado
 
-void createRR(unsigned char* rr,int Nr){
+void createRR(unsigned char* rr,int Nr,int mode){
 
   rr[0]=F;
-  rr[1]=A0;
-  char tmp = 0x05;
+  if(mode == RECEIVER){
+    rr[1]=A1;
+  }else{
+    rr[1]=A0;
+  }
+  unsigned char tmp = CRR0;
   if(Nr==1){
-    tmp = tmp | BIT(8);
+    tmp = CRR1;
   }
   rr[2]=tmp;
-  rr[3]=rr[0]^rr[1]^rr[2];
+  rr[3]=rr[1]^rr[2];
   rr[4]=F;
 
 }
@@ -73,13 +79,17 @@ void createRR(unsigned char* rr,int Nr){
 *@param rej array of bytes to be set into a REJ trama
 *@param Nr defines Nr
 */
-void createREJ(unsigned char* rej,int Nr){
+void createREJ(unsigned char* rej,int Nr,int mode){
 
   rej[0]=F;
-  rej[1]=A0;
-  char tmp = 0x01;
+  if(mode == RECEIVER){
+    rej[1]=A1;
+  }else{
+    rej[1]=A0;
+  }
+  unsigned char tmp = CREJ0;
   if(Nr==1){
-    tmp = tmp | BIT(8);
+    tmp = CREJ1;
   }
   rej[2]=tmp;
   rej[3]=rej[1]^rej[2];
@@ -123,9 +133,9 @@ int validateRRJ(unsigned char data,int* stateRRJ){
     case 2:
     if(data == F){
       *stateRRJ=1;
-    }else if(data == CRR1){
+    }else if(data == CRR0){
       *stateRRJ=3;
-    }else if(data == CRR2){
+    }else if(data == CRR1){
       *stateRRJ=6;
     }else{
       *stateRRJ=0;
@@ -135,7 +145,7 @@ int validateRRJ(unsigned char data,int* stateRRJ){
     case 3:
     if(data == F){
       *stateRRJ=1;
-    }else if(data == (A1 ^ CRR1)){
+    }else if(data == (A1 ^ CRR0)){
       *stateRRJ=4;
     }else{
       *stateRRJ=0;
@@ -155,7 +165,7 @@ int validateRRJ(unsigned char data,int* stateRRJ){
     case 6:
     if(data == F){
       *stateRRJ=1;
-    }else if(data == (A1 ^ CRR2)){
+    }else if(data == (A1 ^ CRR1)){
       *stateRRJ=7;
     }else{
       *stateRRJ=0;
@@ -540,7 +550,7 @@ void llopen(int fd,int mode){
   else{
     while(rcv==0){
       unsigned char set[5];
-      createSet(set,mode);
+      createSET(set,mode);
       res=write(fd,set,5);
 
 
@@ -588,8 +598,15 @@ int main(int argc,unsigned char** argv)
     //llopen(fd,user);*/
 
     unsigned char test[5];
-    createSet(test,user);
+    createRR(test,0,user);
     printChar(test,5);
+    createRR(test,1,user);
+    printChar(test,5);
+    createREJ(test,0,user);
+    printChar(test,5);
+    createREJ(test,1,user);
+    printChar(test,5);
+
 
     sleep(3);
     tcsetattr(fd,TCSANOW,&oldtio);
