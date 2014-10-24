@@ -18,6 +18,11 @@
 #define RECEIVER 0
 #define WRITER 1
 
+
+#define BIT(n)    (0x01<<n)
+
+
+
 //criar as tramas
 
 /*
@@ -50,6 +55,43 @@ void createSet(unsigned char* set,int mode){
   set[3]=set[1]^set[2];
   set[4]=F;
 }
+
+/*
+*@param rr array of bytes to be set into a RR trama
+*@param Nr defines Nr
+*/
+void createRR(unsigned char* rr,int Nr){
+
+  rr[0]=F;
+  rr[1]=A;
+  char tmp = 0x05;
+  if(Nr==1){
+    tmp = tmp | BIT(8);
+  }
+  rr[2]=tmp;
+  rr[3]=rr[0]^r[1]^r[2];
+  rr[4]=F;
+
+}
+
+/*
+*@param rej array of bytes to be set into a REJ trama
+*@param Nr defines Nr
+*/
+void createREJ(unsigned char* rej,int Nr){
+
+  rej[0]=F;
+  rej[1]=A;
+  char tmp = 0x01;
+  if(Nr==1){
+    tmp = tmp | BIT(8);
+  }
+  rej[2]=tmp;
+  rej[3]=rr[0]^r[1]^r[2];
+  rej[4]=F;
+
+}
+
 //validar por maquina de estado
 
 /*
