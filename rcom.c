@@ -550,6 +550,7 @@ void llopen(int fd,int mode){
     res=write(fd,ua,5);
 
   }
+
   else{
     while(rcv==0){
       unsigned char set[5];
@@ -581,25 +582,53 @@ int llread(int fd, char * buffer){
   char rec;
   char buf[255];
   int r;
-  int stateData;
+  int stateData=0;
+  char bcc_data=0x00;
+  int esc=0;
+  char* destuffedData;
 
   printf("a começar a ler...\n");
   int i=0;
+
   do{
+        r= read(fd,buf,1);
+        if(r!=0){
+          rec=buf[0];
+          ret=validateRcv(rec,&stateData);
+          destuffing(rec,destuffedData,&bcc_data, &esc,&i);
+        }
+        else if(r==0){
+          ret=-1;
+        }
+        i++;
+      }while(ret==0)
 
-  r=read(fd,buf,1);
-  if(r!=0)
-    rec=buf[0];
-  else if(r==0){
-    printf("nothing received!\n");
-    rec=0x11;}
-  if (stateData==7){
-    buffer[i]=rec;
-    i++;}
+      if(bcc_data!=0){
+        char rej_tmp[5];
+        createREJ(rej_tmp,0,RECEIVER);
+        r=write(fd,buf,5); 
+      }
+      do{
+      
+      if (ret==2){//recebu uma trama de informação com Ns=0
+        char rr_temp[5];
+        createRR(rr_temp,0,RECEIVER);
+        r=write(fd,buf,5);
+      }
+
+      else if(ret==3){//recebeu uma trama de informação com Ns=1
+        char rr_temp[5];
+        createRR(rr_temp,1,RECEIVER);
+        r=write(fd,buf,5);
+      }
 
 
-  }while(validateRcv(rec, stateData)==0);
-  return (i--);
+    }while(r!=5)
+
+
+
+    //fazer destuffing a cada vez que recebe um byte de dados; fazer variavel xor de todos os dados, se no fim n for 0, mandar um REJ
+    //
 }
 
 //falta mandar mensagens ao emissor
