@@ -24,6 +24,12 @@
 #define BIT(N) (0x01<<N)
 
 //criar as tramas
+void printChar(unsigned char* cena,int tam){
+  int i;
+  for(i=0; i<tam;i++){
+    printf("char[%i]:0x%x\n",i,cena[i]);
+  }
+}
 
 /*
 *@param ua array of bytes to be set into a ua trama
@@ -584,7 +590,7 @@ int llread(int fd, char * buffer){
   int stateData=0;
   char bccData=0x00;
   int esc=0;
-  char* destuffedData[255];
+  char destuffedData[255];
 
   printf("a começar a ler...\n");
   int i=0;
@@ -638,79 +644,94 @@ int llread(int fd, char * buffer){
 }
 
 //falta mandar mensagens ao emissor
+int createCtrlPckg(unsigned char** start,unsigned char** end,int tamanho,unsigned char* name){
+  int nameSz = sizeof(name);
+  int sizeSz = 4;
+  unsigned char bytes[sizeSz];
 
-void printChar(unsigned char* cena,int tam){
-  int i;
-  for(i=0; i<tam;i++){
-    printf("char[%i]:0x%x\n",i,cena[i]);
+bytes[0] = (tamanho >> 24) & 0xFF;
+bytes[1] = (tamanho >> 16) & 0xFF;
+bytes[2] = (tamanho >> 8) & 0xFF;
+bytes[3] = tamanho & 0xFF;
+
+  unsigned char nameSize;
+  nameSize = nameSz & 0xFF;
+  unsigned char sizeSize;
+  sizeSize = sizeSz & 0xFF;
+  (*start) =(unsigned char*) malloc(5 + nameSz + sizeSz);
+  (*end) = (unsigned char*)malloc(5 + nameSz + sizeSz);
+  (*start)[0]=0x02;
+  (*end)[0]=0x03;
+  (*start)[1]=0x00;
+  (*start)[2]=sizeSize;
+  (*end)[1]=0x00;
+  (*end)[2]=sizeSize;
+  int i=0;
+  int j=0;
+  for(i = 3;i<3+sizeSz;i++){
+    (*start)[i]=bytes[j];
+    (*end)[i]=bytes[j];
+    j++;
   }
+  (*start)[3+sizeSz]=0x01;
+  (*start)[4+sizeSz]=nameSize;
+  (*end)[3+sizeSz]=0x01;
+  (*end)[4+sizeSz]=nameSize;
+  j=0;
+  for(i = 5+sizeSz;i<5+sizeSz +nameSz;i++){
+    (*start)[i]=name[j];
+    (*end)[i]=name[j];
+    j++;
+  }
+  printChar(*start,5+nameSz+sizeSz);
+  return (5 + nameSz + sizeSz);
 }
+
 
 int main(int argc,unsigned char** argv)
 {
   int fd,c;
   struct termios oldtio;
-  int user = RECEIVER;
+  int user = RECEIVER; //arg cenas
 
-  /*fd = open(argv[1], O_RDWR | O_NOCTTY );
+
+  unsigned char* start, *end;
+  int size=createCtrlPckg(&start,&end,10,"file.jpg");
+  printChar(start,size);
+
+
+/*
+  fd = open(argv[1], O_RDWR | O_NOCTTY );
   if (fd <0) {perror(argv[1]); exit(-1); }
 
-  if ( tcgetattr(fd,&oldtio) == -1){
-  perror("tcgetattr");
-  exit(-1);
-}
-
-//llopen(fd,user);*/
-
-    /*
-    unsigned char test[5];
-    createRR(test,0,user);
-    printChar(test,5);
-    createRR(test,1,user);
-    printChar(test,5);
-    createREJ(test,0,user);
-    printChar(test,5);
-    createREJ(test,1,user);
-    printChar(test,5);
-
-    */
-
-    unsigned char data[5];
-    data[0]=0x11;
-    data[1]=F;
-    data[2]=0x7d;
-    data[3]=0x69;
-    data[4]=0x01;
-
-    printChar(data,5);
-    unsigned char bcc2=0;
-    BCC2(data,&bcc2, 5);
-    printf("bcc2:0x%x\n",bcc2);
-    printf("--------------\n");
-    unsigned char stuffed_tmp[10];
-    int red=stuffing(data,stuffed_tmp,5);
-    printChar(stuffed_tmp,red);
-
-    printf("--------------\n");
-    unsigned char final[red+6];
-    completeData(stuffed_tmp,final,0,red,bcc2);
-    printChar(final,red+6);
-    printf("--------------\n");
-    unsigned char destuffed_tmp[255];
-    int esc=0;
-    int i=0;
-    int j=0;
-    unsigned char bcctmp=0x00;
-
-    for(j=4;j<red+5;j++){
-      destuffing(final[j],destuffed_tmp,&bcctmp, &esc,&i);
+    if ( tcgetattr(fd,&oldtio) == -1){
+      perror("tcgetattr");
+      exit(-1);
     }
-    printf("bcc validation:0x%x\n",bcctmp);
-    printf("i:%i\n",i);
-    printChar(destuffed_tmp,i);
+
+    char* file = argv[3];
+    //llopen
+    if(user == WRITER){
+    //abrir ficheiro
+    //guardar tamanho doficheiro
+
+    //fazemos o llopen
+    //criamso o pacote de controlo de inicio
+    //enviamos pelo ll write
+    //vamos lendo do ficheiro
+    //criando pacote de dado
+    //e enviando pelo llwrite
+    //chegamso ao fim do ficheiro
+    //mandamos o pacote de controlo de fim
+    }
+    //fazemos llclose
+
+
+
 
     sleep(3);
     tcsetattr(fd,TCSANOW,&oldtio);
     close(fd);
+    */
     exit(0);
   }
