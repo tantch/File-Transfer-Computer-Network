@@ -579,7 +579,7 @@ void llopen(int fd,int mode){
 }
 
 int llread(int fd, char * buffer){
-  char rec;
+  char rec,ret;
   char buf[255];
   int r;
   int stateData=0;
@@ -601,29 +601,35 @@ int llread(int fd, char * buffer){
           ret=-1;
         }
         i++;
-      }while(ret==0)
+      }while(ret==0);
 
-      if(bcc_data!=0){
-        char rej_tmp[5];
-        createREJ(rej_tmp,0,RECEIVER);
-        r=write(fd,buf,5); 
-      }
       do{
       
       if (ret==2){//recebu uma trama de informação com Ns=0
-        char rr_temp[5];
-        createRR(rr_temp,0,RECEIVER);
-        r=write(fd,buf,5);
+         if(bcc_data!=0){
+          char rej_tmp[5];
+          createREJ(rej_tmp,0,RECEIVER);
+          r=write(fd,buf,5); 
+         }
+        else{
+          char rr_temp[5];
+          createRR(rr_temp,0,RECEIVER);
+          r=write(fd,buf,5);
+        }
       }
-
       else if(ret==3){//recebeu uma trama de informação com Ns=1
-        char rr_temp[5];
-        createRR(rr_temp,1,RECEIVER);
-        r=write(fd,buf,5);
+        if(bcc_data!=0){
+          char rej_tmp[5];
+          createREJ(rej_tmp,1,RECEIVER);
+          r=write(fd,buf,5); 
+         }
+        else{
+          char rr_temp[5];
+          createRR(rr_temp,1,RECEIVER);
+          r=write(fd,buf,5);
+        }
       }
-
-
-    }while(r!=5)
+    }while(r!=5);
 
 
 
