@@ -489,15 +489,14 @@ int stuffing(unsigned char* data, unsigned char* stuffed, int n){
 
 void BCC2(unsigned char* data, unsigned char* final, int n){
   int i;
-  for (i=0;i<n-1;i++){
-    *final=data[i]^data[i+1];
+  for (i=0;i<n;i++){
+    *final=data[i]^*final;
   }
 }
 
-void completeData(unsigned char* data, unsigned char* final,int c, int n){
+void completeData(unsigned char* data, unsigned char* final,int c, int n,unsigned char bcc2){
   int i;
-  unsigned char bcc2;
-  BCC2(data,&bcc2, n);
+
 
   for (i=0;i<n + 4;i++){
     final[i+4]=data[i];
@@ -583,58 +582,59 @@ int llread(int fd, char * buffer){
   char buf[255];
   int r;
   int stateData=0;
-  char bcc_data=0x00;
+  char bccData=0x00;
   int esc=0;
-  char* destuffedData;
+  char* destuffedData[255];
 
   printf("a começar a ler...\n");
   int i=0;
 
   do{
-        r= read(fd,buf,1);
-        if(r!=0){
-          rec=buf[0];
-          ret=validateRcv(rec,&stateData);
-          destuffing(rec,destuffedData,&bcc_data, &esc,&i);
-        }
-        else if(r==0){
-          ret=-1;
-        }
-        i++;
-      }while(ret==0);
-
-      do{
-      
-      if (ret==2){//recebu uma trama de informação com Ns=0
-         if(bcc_data!=0){
-          char rej_tmp[5];
-          createREJ(rej_tmp,0,RECEIVER);
-          r=write(fd,buf,5); 
-         }
-        else{
-          char rr_temp[5];
-          createRR(rr_temp,0,RECEIVER);
-          r=write(fd,buf,5);
-        }
+    r= read(fd,buf,1);
+    if(r!=0){
+      rec=buf[0];
+      if(rec!= 0x7e){
+        ret=validateRcv(rec,&stateData);
+        destuffing(rec,destuffedData,&bccData, &esc,&i);
       }
-      else if(ret==3){//recebeu uma trama de informação com Ns=1
-        if(bcc_data!=0){
-          char rej_tmp[5];
-          createREJ(rej_tmp,1,RECEIVER);
-          r=write(fd,buf,5); 
-         }
-        else{
-          char rr_temp[5];
-          createRR(rr_temp,1,RECEIVER);
-          r=write(fd,buf,5);
-        }
+    }
+    else if(r==0){
+      ret=-1;
+    }
+  }while(ret==0);
+
+  do{
+
+    if (ret==2){//recebu uma trama de informação com Ns=0
+      if(bccData!=0){
+        char rej_tmp[5];
+        createREJ(rej_tmp,0,RECEIVER);
+        r=write(fd,buf,5);
       }
-    }while(r!=5);
+      else{
+        char rr_temp[5];
+        createRR(rr_temp,0,RECEIVER);
+        r=write(fd,buf,5);
+      }
+    }
+    else if(ret==3){//recebeu uma trama de informação com Ns=1
+      if(bccData!=0){
+        char rej_tmp[5];
+        createREJ(rej_tmp,1,RECEIVER);
+        r=write(fd,buf,5);
+      }
+      else{
+        char rr_temp[5];
+        createRR(rr_temp,1,RECEIVER);
+        r=write(fd,buf,5);
+      }
+    }
+  }while(r!=5);
 
 
 
-    //fazer destuffing a cada vez que recebe um byte de dados; fazer variavel xor de todos os dados, se no fim n for 0, mandar um REJ
-    //
+  //fazer destuffing a cada vez que recebe um byte de dados; fazer variavel xor de todos os dados, se no fim n for 0, mandar um REJ
+  //
 }
 
 //falta mandar mensagens ao emissor
@@ -655,12 +655,12 @@ int main(int argc,unsigned char** argv)
   /*fd = open(argv[1], O_RDWR | O_NOCTTY );
   if (fd <0) {perror(argv[1]); exit(-1); }
 
-    if ( tcgetattr(fd,&oldtio) == -1){
-      perror("tcgetattr");
-      exit(-1);
-    }
+  if ( tcgetattr(fd,&oldtio) == -1){
+  perror("tcgetattr");
+  exit(-1);
+}
 
-    //llopen(fd,user);*/
+//llopen(fd,user);*/
 
     /*
     unsigned char test[5];
@@ -683,28 +683,31 @@ int main(int argc,unsigned char** argv)
     data[4]=0x01;
 
     printChar(data,5);
+    unsigned char bcc2=0;
+    BCC2(data,&bcc2, 5);
+    printf("bcc2:0x%x\n",bcc2);
     printf("--------------\n");
     unsigned char stuffed_tmp[10];
     int red=stuffing(data,stuffed_tmp,5);
     printChar(stuffed_tmp,red);
 
-printf("--------------\n");
-
-    unsigned char destuffed_tmp[5];
+    printf("--------------\n");
+    unsigned char final[red+6];
+    completeData(stuffed_tmp,final,0,red,bcc2);
+    printChar(final,red+6);
+    printf("--------------\n");
+    unsigned char destuffed_tmp[255];
     int esc=0;
     int i=0;
     int j=0;
     unsigned char bcctmp=0x00;
-    for(j=0;j<red;j++){
-      destuffing(stuffed_tmp[j],destuffed_tmp,&bcctmp, &esc,&i);
+
+    for(j=4;j<red+5;j++){
+      destuffing(final[j],destuffed_tmp,&bcctmp, &esc,&i);
     }
+    printf("bcc validation:0x%x\n",bcctmp);
     printf("i:%i\n",i);
     printChar(destuffed_tmp,i);
-printf("--------------\n");
-    unsigned char final[red+6];
-    completeData(stuffed_tmp,final,0,red);
-    printChar(final,red+6);
-
 
     sleep(3);
     tcsetattr(fd,TCSANOW,&oldtio);
