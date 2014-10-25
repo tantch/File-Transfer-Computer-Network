@@ -590,7 +590,7 @@ int llread(int fd, char * buffer){
   int stateData=0;
   char bccData=0x00;
   int esc=0;
-  char destuffedData[255];
+  
 
   printf("a começar a ler...\n");
   int i=0;
@@ -601,7 +601,8 @@ int llread(int fd, char * buffer){
       rec=buf[0];
       if(rec!= 0x7e){
         ret=validateRcv(rec,&stateData);
-        destuffing(rec,destuffedData,&bccData, &esc,&i);
+        destuffing(rec,buffer,&bccData, &esc,&i);
+       
       }
     }
     else if(r==0){
@@ -616,11 +617,13 @@ int llread(int fd, char * buffer){
         char rej_tmp[5];
         createREJ(rej_tmp,0,RECEIVER);
         r=write(fd,buf,5);
+        return -1;
       }
       else{
         char rr_temp[5];
         createRR(rr_temp,0,RECEIVER);
         r=write(fd,buf,5);
+        return sizeof(buffer)-1;
       }
     }
     else if(ret==3){//recebeu uma trama de informação com Ns=1
@@ -628,19 +631,16 @@ int llread(int fd, char * buffer){
         char rej_tmp[5];
         createREJ(rej_tmp,1,RECEIVER);
         r=write(fd,buf,5);
+        return -1;
       }
       else{
         char rr_temp[5];
         createRR(rr_temp,1,RECEIVER);
         r=write(fd,buf,5);
+        return sizeof(buffer)-1;
       }
     }
   }while(r!=5);
-
-
-
-  //fazer destuffing a cada vez que recebe um byte de dados; fazer variavel xor de todos os dados, se no fim n for 0, mandar um REJ
-  //
 }
 
 //falta mandar mensagens ao emissor
