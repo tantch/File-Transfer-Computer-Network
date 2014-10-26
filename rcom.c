@@ -703,7 +703,7 @@ int llread(int fd, char * buffer){
     r= read(fd,buf,1);
 	if(r==-1){
 		printf("erro:%s\n",strerror(errno));	
-}
+  }
     if(r==1){
       alarm(TIMEOUT);
       rec=buf[0];
@@ -762,7 +762,7 @@ int llread(int fd, char * buffer){
 
 
 int llclose(int fd){
-  int r,rec,stateDisc=0;
+  int r,rec,stateDisc=0,stateUA=0;
   char* buf;
   int ret;
   char writer_ua[5],writer_disc[5],receiver_disc[5];
@@ -786,12 +786,13 @@ int llclose(int fd){
           if(alarm_flag==1){
             alarm_flag=0;
             nTimeouts++;
-			alarm(TIMEOUT);
+            r=write(fd,writer_disc,5);
+		      	alarm(TIMEOUT);
             ret=-1;
           }
         }
       }while(ret==0);
-printf("ret:%i\n",ret);
+      printf("ret:%i\n",ret);
     }while( nTimeouts < RETRANSMIT && r<1);
     alarm(0);
     if(nTimeouts==RETRANSMIT){
@@ -823,7 +824,7 @@ printf("ret:%i\n",ret);
           alarm_flag=0;
           ret=-1;
           nTimeouts++;
-			alarm(TIMEOUT);
+			    alarm(TIMEOUT);
         }
       }
     }while(nTimeouts < RETRANSMIT && ret==0);
@@ -835,12 +836,33 @@ printf("ret:%i\n",ret);
     }
     nTimeouts=0;
     stateDisc=0;
-
+    ret=-1;
     createDISC(receiver_disc,RECEIVER);
     r=write(fd,receiver_disc,5);
-    return 0;
+    do{
+      r=read(fd,buf,1);
+      alarm(TIMEOUT);
 
-  }
+      if(r==1){
+        rec=buf[0];
+        ret=validateUA(rec,&stateUA);
+        alarm_flag=0;
+        nTimeouts=0;
+      }
+      else if(r==0){
+
+        if(alarm_flag==1){
+          alarm_flag=0;
+          nTimeouts++;
+          alarm(TIMEOUT);
+        }
+      }
+    }while(nTimeouts <= RETRANSMIT && ret!=1);
+    if(nTimeouts==RETRANSMIT){
+      printf("Error. Couldn't establish connection on closing.\n");
+      return -1;
+      }
+    }
 }
 
 int createDtPckg(unsigned char* data,unsigned long dataSz,unsigned char** pack,int n){
