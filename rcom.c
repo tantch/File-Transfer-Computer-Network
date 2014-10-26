@@ -613,7 +613,7 @@ int llopen(int fd,int mode){
   int rcv=0;
   int state=0;
   int ret=0;
-  config(30,0,fd);
+  config(3,0,fd);
   MODE=mode;
   if(mode == RECEIVER){
     unsigned char ua[5];
@@ -631,11 +631,11 @@ int llopen(int fd,int mode){
         ret=0;
         if(alarm_flag==1){
           alarm_flag=0;
-          ret=-1;
           nTimeouts++;
+			alarm(TIMEOUT);
         }
       }
-
+	printf("ret:%i\ntimeouts:%i\n",ret,nTimeouts);
     }while(ret==0 && nTimeouts<RETRANSMIT);
     alarm(0);
     if(nTimeouts==RETRANSMIT){
@@ -927,7 +927,7 @@ int createCtrlPckg(unsigned char** start,unsigned char** end,int tamanho,unsigne
   }
   return (5 + nameSz + sizeSz);
 }
-
+/*
 void llwrite(int fd, unsigned char* data){
   char rec,ret;
   char buf[255];
@@ -999,7 +999,7 @@ void llwrite(int fd, unsigned char* data){
   timeout=0;
 
 }
-
+*/
 
 
 
@@ -1026,21 +1026,24 @@ int main(int argc,unsigned char** argv)
   act.sa_flags = 0;
   sigaction(SIGALRM, &act, NULL);
 
-
+	MODE=(int)strtol(argv[2],NULL,2); //argv2 is reader 
   int fd,c;
   struct termios oldtio;
-  int user = RECEIVER; //arg cenas
-
-
-  /*
+  
   fd = open(argv[1], O_RDWR | O_NOCTTY );
   if (fd <0) {perror(argv[1]); exit(-1); }
 
   if ( tcgetattr(fd,&oldtio) == -1){
   perror("tcgetattr");
   exit(-1);
-}
+	}
 
+	int r=llopen(fd,MODE);
+	printf("r:%i\n",r);
+
+	
+
+/*
 char* file = argv[3];
 //llopen
 if(user == WRITER){
