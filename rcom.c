@@ -23,6 +23,7 @@
 #define CRR1 0x85
 #define CREJ0 0x01
 #define CREJ1 0x81
+#define CDISC 0x0B
 #define RECEIVER 0
 #define WRITER 1
 #define BIT(N) (0x01<<N)
@@ -80,6 +81,18 @@ void createSET(unsigned char* set,int mode){
   set[4]=F;
 }
 //validar por maquina de estado
+
+void createDISC(unsigned char* set,int mode){
+  set[0]=F;
+  if(mode == WRITER){
+    set[1]=A1;
+  }else{
+    set[1]=A0;
+  }
+  set[2]=CDISC;
+  set[3]=set[1]^set[2];
+  set[4]=F;
+}
 
 void createRR(unsigned char* rr,int Nr,int mode){
 
@@ -578,7 +591,7 @@ void llopen(int fd,int mode){
     while(rcv==0){
       unsigned char set[5];
       createSET(set,mode);
-      while(nTimeouts<TIMEOUT && res<0){
+      while(nTimeouts<=RETRANSMIT && res<0){
         res=write(fd,set,5);
         do{
           
@@ -590,15 +603,20 @@ void llopen(int fd,int mode){
           if(res==1){
             recv=buf[0];
             ret=validateUA(recv,&state);
+            nTimeouts=0;
           }
           else if(res==0){
             ret=-1;
           }
-          else if(alarm_flag && res==-2)
+          else if(alarm_flag && res==-2){
             res=write(fd,set,5);
-          
+            res=-2;
+          }    
         }while(ret==0);
       }
+      if(nTimeouts==RETRANSMIT){
+      printf("Error. Couldn't establish connection.\n")
+      return;}
       if(ret==1){
         rcv=1;
       }
@@ -641,13 +659,13 @@ int llread(int fd, char * buffer){
       if(bccData!=0){
         char rej_tmp[5];
         createREJ(rej_tmp,0,RECEIVER);
-        r=write(fd,buf,5);
+        r=write(fd,rej_tmp,5);
         return -1;
       }
       else{
         char rr_temp[5];
         createRR(rr_temp,0,RECEIVER);
-        r=write(fd,buf,5);
+        r=write(fd,rr_temp,5);
         return sizeof(buffer)-1;
       }
     }
@@ -655,17 +673,57 @@ int llread(int fd, char * buffer){
       if(bccData!=0){
         char rej_tmp[5];
         createREJ(rej_tmp,1,RECEIVER);
-        r=write(fd,buf,5);
+        r=write(fd,rej_tmp,5);
         return -1;
       }
       else{
         char rr_temp[5];
         createRR(rr_temp,1,RECEIVER);
-        r=write(fd,buf,5);
+        r=write(fd,rr_temp,5);
         return sizeof(buffer)-1;
       }
     }
   }while(r!=5);
+}
+
+int llclose(int fd, int mode){
+int r;
+char* buf;
+  if(mode==WRITER){
+    char* writer_disc;
+    createDISC(writer_disc,WRITER);
+    r=write(fd,writer_disc,5);
+    r=-2;
+    while( nTimeouts <= RETRANSMIT && r<0){
+      r=read(fd,buf,5);
+      alarm(TIMEOUT);
+      if(r==5){
+        char* writer_ua;
+        createUA(writer_ua,WRITER);
+        r=write(fd,writer_ua,5);
+        nTimeouts=0;
+        r=-2;
+      }
+      else if(r==-2){
+        r=write(fd,writer_disc,5);
+        r=-2;
+      }
+    }
+    if(nTimeouts==RETRANSMIT){
+      printf("Error. Couldn't establish connection.\n")
+      nTimeouts=0;
+    }
+  }
+  else{
+    char* receiver_disc;
+    createDISC(receiver_disc,RECEIVER);
+    r=read(fd,buf,5);
+    if(buf==5){
+      r=write(fd,receiver_disc,5);
+    }
+  }
+  
+
 }
 
 //falta mandar mensagens ao emissor
