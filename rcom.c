@@ -615,7 +615,7 @@ void llopen(int fd,int mode){
         }while(ret==0);
       }
       if(nTimeouts==RETRANSMIT){
-      printf("Error. Couldn't establish connection.\n")
+      printf("Error. Couldn't establish connection.\n");
       return;}
       if(ret==1){
         rcv=1;
@@ -710,7 +710,7 @@ char* buf;
       }
     }
     if(nTimeouts==RETRANSMIT){
-      printf("Error. Couldn't establish connection.\n")
+      printf("Error. Couldn't establish connection.\n");
       nTimeouts=0;
     }
   }
