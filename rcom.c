@@ -3,6 +3,10 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <stdio.h>
+#include <time.h>
+#include <signal.h>
+
+
 #define BAUDRATE B38400
 #define _POSIX_SOURCE 1
 #define FALSE 0
@@ -22,6 +26,20 @@
 #define RECEIVER 0
 #define WRITER 1
 #define BIT(N) (0x01<<N)
+
+#define TIMEOUT 3
+#define RETRANSMIT 3
+
+int nTimeouts=0;
+int alarm_flag=0;
+
+
+void alarmhandler(int signo) {
+
+ printf("timeout # %d\n", nTimeouts);
+   alarm_flag=1;
+   nTimeouts++;
+}
 
 //criar as tramas
 void printChar(unsigned char* cena,int tam){
@@ -553,27 +571,34 @@ void llopen(int fd,int mode){
     }while(ret==0);
 
     res=write(fd,ua,5);
-
+    res=-2; //para testar se não leu o primeiro byte do UA
   }
-
-  else{
+  
+   else{
     while(rcv==0){
       unsigned char set[5];
       createSET(set,mode);
-      res=write(fd,set,5);
-
-
-      do{
-        res= read(fd,buf,1);
-        if(res!=0){
-          recv=buf[0];
-          ret=validateUA(recv,&state);
-        }
-        else if(res==0){
-          ret=-1;
-        }
-      }while(ret==0);
-
+      while(nTimeouts<TIMEOUT && res<0){
+        res=write(fd,set,5);
+        do{
+          
+          if(alarm_flag)
+            alarm_flag=0;
+          
+          res= read(fd,buf,1);
+          alarm(TIMEOUT);
+          if(res==1){
+            recv=buf[0];
+            ret=validateUA(recv,&state);
+          }
+          else if(res==0){
+            ret=-1;
+          }
+          else if(alarm_flag && res==-2)
+            res=write(fd,set,5);
+          
+        }while(ret==0);
+      }
       if(ret==1){
         rcv=1;
       }
@@ -690,6 +715,16 @@ bytes[3] = tamanho & 0xFF;
 
 int main(int argc,unsigned char** argv)
 {
+
+
+// installing alarm
+  struct sigaction act;
+  act.sa_handler = alarmhandler;
+  sigemptyset (&act.sa_mask);
+  act.sa_flags = 0;
+  sigaction(SIGALRM, &act, NULL);
+
+
   int fd,c;
   struct termios oldtio;
   int user = RECEIVER; //arg cenas
