@@ -35,6 +35,7 @@
 int nTimeouts=0;
 int alarm_flag=0;
 int MODE;
+int Ns=0;
 
 void alarmhandler(int signo) {
 
@@ -552,7 +553,8 @@ int destuffing(char sent,char* data,char* bcc,int* escape,int* destufcount){
 int stuffing(unsigned char* data, unsigned char* stuffed, int n){
   int i,r;
   r=0;
-  for(i=0;i<n;i++){
+  stuffed[0]=  data[0];
+  for(i=1;i<n-1;i++){
     if(data[i]==F){
       stuffed[r]=ESC_BYTE;
       stuffed[++r]=0x5E;
@@ -571,6 +573,8 @@ int stuffing(unsigned char* data, unsigned char* stuffed, int n){
     }
 
   }
+  stuffed[r]=data[n-1];
+  r++:
   return r;
 }
 
@@ -585,7 +589,7 @@ void completeData(unsigned char* data, unsigned char* final,int c, int n,unsigne
   int i;
 
 
-  for (i=0;i<n + 4;i++){
+  for (i=0;i<n;i++){
     final[i+4]=data[i];
   }
 
@@ -702,7 +706,7 @@ int llread(int fd, char * buffer){
   do{
     r= read(fd,buf,1);
 	if(r==-1){
-		printf("erro:%s\n",strerror(errno));	
+		printf("erro:%s\n",strerror(errno));
   }
     if(r==1){
       alarm(TIMEOUT);
@@ -779,6 +783,7 @@ int llclose(int fd){
           alarm(TIMEOUT);
           rec=buf[0];
           ret=validateDISC(rec,&stateDisc);
+          printf("writer state:0x%x\n",stateDisc);
           nTimeouts=0;
         }
         else if(r==0){
@@ -793,7 +798,7 @@ int llclose(int fd){
         }
       }while(ret==0);
       printf("ret:%i\n",ret);
-    }while( nTimeouts < RETRANSMIT && r<1);
+    }while( nTimeouts < RETRANSMIT && ret<1);
     alarm(0);
     if(nTimeouts==RETRANSMIT){
       printf("Error. Couldn't establish connection on closing.\n");
@@ -822,12 +827,11 @@ int llclose(int fd){
         ret=0;
         if(alarm_flag==1){
           alarm_flag=0;
-          ret=-1;
           nTimeouts++;
 			    alarm(TIMEOUT);
         }
       }
-    }while(nTimeouts < RETRANSMIT && ret==0);
+    }while(nTimeouts < RETRANSMIT && ret<1);
     alarm(0);
     if(nTimeouts==RETRANSMIT){
       printf("Error. Couldn't establish connection on closing.\n");
@@ -857,7 +861,7 @@ int llclose(int fd){
           alarm(TIMEOUT);
         }
       }
-    }while(nTimeouts <= RETRANSMIT && ret!=1);
+    }while(nTimeouts <= RETRANSMIT && r==0);
     if(nTimeouts==RETRANSMIT){
       printf("Error. Couldn't establish connection on closing.\n");
       return -1;
@@ -961,84 +965,64 @@ int createCtrlPckg(unsigned char** start,unsigned char** end,int tamanho,unsigne
   }
   return (5 + nameSz + sizeSz);
 }
-/*
+
 void llwrite(int fd, unsigned char* data){
   char rec,ret;
   char buf[255];
   int r;
-  int stateData=0;
+  int stateRRJ=0;
   int esc=0;
   char* bcc;
-  char* stuffedData[255];
-  char* bccAdded[255];
-  char* final[255];
-
+  char* stuffedData;
+  char* final;
+  int tm=(int)sizeof(data);
   int i=0;
   int timeout=0;
 
-  BCC2(data,bcc);
-  addBcc2(data,bccAdded,bcc,255)
-  stuffing(bccAdded,stuffedData,255);
+  BCC2(data,&bcc);
+  tm=completeData(data,final,Ns,tm,bcc);
+  stuffedData =(unsigned char *)malloc(tm*2);
+  tm=stuffing(bccAdded,stuffedData,tm);
 
-    do{
-    r= write(fd,buf,1);
-    if(r!=0)
-	{
-    rec=buf[0];
-    ret=validateWrt(rec,&stateData);
-	}
-    else if(r==0)
-	{
-    ret=-1;
-    }
-  }while(ret==0);
-
-
-
-
-   do{
-   if (ret==1)
-  completeData(suffedData,final,0,255);
-   r= read(fd,buf,5);
-   if (r==0x81)
-   return -1;
-   else if(r==0x85)
-	{
-	ret=0;
-	}
-	else
-	timeout++;
-	 }
-	while(timeout<3);
 
   do{
-  if (ret==2)
-  completeData(suffedData,final,0,255);
-   r= read(fd,buf,5);
-   if (r==0x01)
-   return -1;
-   else if(r==0x05)
-	{
-	ret=0;
-	}
-	else
-	timeout++;
-	}
-	while(timeout<3);
+  r= write(fd,buf,tm);
+    alarm(TIMEOUT);
+    do{
+      int p=read(fd,buf,1);
+      if(p==1){
+        alarm(TIMEOUT);
+        rec=buf[0];
+        ret=validateRRJ(rec,&stateRRJ);
 
+      }
+      else if(p==0){
+        ret=0;
+        if(alarm_flag==1){
+          alarm_flag=0;
+          ret=-1;
+          nTimeouts++;
+          alarm(TIMEOUT);
+        }
+      }
 
-  if(timeout==3)
-  return -1;
-  else
-  timeout=0;
+    }while(ret==0);
+  }while(nTimeouts<RETRANSMIT && r<1);
+
+  if(ret==1){
+    Ns=0;
+    return 0;
+  }
+  else if(ret==2){
+    Ns=1;
+    return 0;
+  }
+  else if(ret==3 || ret==4){
+    return -1;
+  }
+
 
 }
-*/
-
-
-
-
-
 
 off_t fsize(char *filename) {
     struct stat st;
@@ -1060,10 +1044,10 @@ int main(int argc,unsigned char** argv)
   act.sa_flags = 0;
   sigaction(SIGALRM, &act, NULL);
 
-	MODE=(int)strtol(argv[2],NULL,2); //argv2 is reader 
+	MODE=(int)strtol(argv[2],NULL,2); //argv2 is reader
   int fd,c;
   struct termios oldtio;
-  
+
   fd = open(argv[1], O_RDWR | O_NOCTTY );
   if (fd <0) {perror(argv[1]); exit(-1); }
 
@@ -1076,7 +1060,7 @@ int main(int argc,unsigned char** argv)
 	printf("r:%i\n",r);
 	int cl=llclose(fd);
 	printf("cl:%i\n",cl);
-	
+
 
 /*
 char* file = argv[3];
