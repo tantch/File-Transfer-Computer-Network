@@ -33,13 +33,13 @@
 
 int nTimeouts=0;
 int alarm_flag=0;
-
+int MODE;
 
 void alarmhandler(int signo) {
 
- printf("timeout # %d\n", nTimeouts);
-   alarm_flag=1;
-   nTimeouts++;
+  printf("alarm handler\n");
+  alarm_flag=1;
+
 }
 
 //criar as tramas
@@ -135,7 +135,6 @@ void createREJ(unsigned char* rej,int Nr,int mode){
 }
 
 //validar por maquina de estado
-
 
 /*
 *@param data byte a comparar para alterar a M.E.
@@ -489,8 +488,6 @@ int validateDISC(unsigned char disc,int* stateDisc){
 
 }
 
-
-
 /*configures the configurations of the serial port
 *
 *@param vtim tempo que demora a sair do read quando nao esta a ler nada
@@ -569,7 +566,8 @@ int stuffing(unsigned char* data, unsigned char* stuffed, int n){
     }
     else{
       stuffed[r]=data[i];
-      r++;}
+      r++;
+    }
 
   }
   return r;
@@ -606,7 +604,7 @@ void completeData(unsigned char* data, unsigned char* final,int c, int n,unsigne
   final[n+5]=F;
 }
 
-void llopen(int fd,int mode){
+int llopen(int fd,int mode){
 
   char buf[255];
   unsigned char recv;
@@ -616,63 +614,74 @@ void llopen(int fd,int mode){
   int state=0;
   int ret=0;
   config(30,0,fd);
-
+  MODE=mode;
   if(mode == RECEIVER){
     unsigned char ua[5];
     createUA(ua,mode);
-
+    alarm(TIMEOUT);
     do{
+
       res= read(fd,buf,1);
       if(res!=0){
+        alarm(TIMEOUT);
         recv=buf[0];
         ret=validateSET(recv,&state);
       }
       else if(res==0){
         ret=0;
-        //state=0;
+        if(alarm_flag==1){
+          alarm_flag=0;
+          ret=-1;
+          nTimeouts++;
+        }
       }
 
-    }while(ret==0);
-
-    res=write(fd,ua,5);
-    res=-2; //para testar se não leu o primeiro byte do UA
-  }
-  
-   else{
-    while(rcv==0){
-      unsigned char set[5];
-      createSET(set,mode);
-      while(nTimeouts<=RETRANSMIT && res<0){
-        res=write(fd,set,5);
-        do{
-          
-          if(alarm_flag)
-            alarm_flag=0;
-          
-          res= read(fd,buf,1);
-          alarm(TIMEOUT);
-          if(res==1){
-            recv=buf[0];
-            ret=validateUA(recv,&state);
-            nTimeouts=0;
-          }
-          else if(res==0){
-            ret=-1;
-          }
-          else if(alarm_flag && res==-2){
-            res=write(fd,set,5);
-            res=-2;
-          }    
-        }while(ret==0);
-      }
-      if(nTimeouts==RETRANSMIT){
+    }while(ret==0 && nTimeouts<RETRANSMIT);
+    alarm(0);
+    if(nTimeouts==RETRANSMIT){
       printf("Error. Couldn't establish connection.\n");
-      return;}
-      if(ret==1){
-        rcv=1;
-      }
+      return -1;
     }
 
+    res=write(fd,ua,5);
+    nTimeouts=0;
+    return 0;
+  }
+
+  else{
+
+    unsigned char set[5];
+    createSET(set,mode);
+    while(nTimeouts<RETRANSMIT && res<1){
+      res=write(fd,set,5);
+      alarm(TIMEOUT);
+      do{
+
+        res= read(fd,buf,1);
+
+        if(res==1){
+          alarm(TIMEOUT);
+          recv=buf[0];
+          ret=validateUA(recv,&state);
+          nTimeouts=0;
+        }
+        else if(res==0){
+          ret=0;
+          if(alarm_flag==1){
+            alarm_flag=0;
+            ret=-1;
+            nTimeouts++;
+          }
+        }
+      }while(ret==0);
+    }
+    alarm(0);
+    if(nTimeouts==RETRANSMIT){
+      printf("Error. Couldn't establish connection.\n");
+      return -1;
+    }
+    nTimeouts=0;
+    return 0;
 
   }
 }
@@ -684,25 +693,30 @@ int llread(int fd, char * buffer){
   int stateData=0;
   char bccData=0x00;
   int esc=0;
-  
-
-  printf("a começar a ler...\n");
   int i=0;
 
+  printf("a começar a ler...\n");
+
+  alarm(TIMEOUT);
   do{
     r= read(fd,buf,1);
     if(r!=0){
+      alarm(TIMEOUT);
       rec=buf[0];
       if(rec!= 0x7e){
         ret=validateRcv(rec,&stateData);
         destuffing(rec,buffer,&bccData, &esc,&i);
-       
       }
     }
     else if(r==0){
-      ret=-1;
+      ret=0;
+      if(alarm_flag==1){
+        alarm_flag==0;
+        nTimeouts++;
+        ret=-1;
+      }
     }
-  }while(ret==0);
+  }while(ret==0 && nTimeouts<RETRANSMIT);
 
   do{
 
@@ -717,7 +731,7 @@ int llread(int fd, char * buffer){
         char rr_temp[5];
         createRR(rr_temp,0,RECEIVER);
         r=write(fd,rr_temp,5);
-        return sizeof(buffer)-1;
+        return i-1;
       }
     }
     else if(ret==3){//recebeu uma trama de informação com Ns=1
@@ -731,71 +745,156 @@ int llread(int fd, char * buffer){
         char rr_temp[5];
         createRR(rr_temp,1,RECEIVER);
         r=write(fd,rr_temp,5);
-        return sizeof(buffer)-1;
+        return i-1;
       }
     }
   }while(r!=5);
 }
 
 
-int llclose(int fd, int mode){
-int r,rec,stateDisc=0;
-char* buf;
-char writer_ua[5],writer_disc[5],receiver_disc[5];
-  if(mode==WRITER){
+int llclose(int fd){
+  int r,rec,stateDisc=0;
+  char* buf;
+  int ret;
+  char writer_ua[5],writer_disc[5],receiver_disc[5];
+  if(MODE==WRITER){
 
-    createDISC(writer_disc,WRITER);
-    r=write(fd,writer_disc,5);
-    r=-2;
-    while( nTimeouts <= RETRANSMIT && r<0){
-      r=read(fd,buf,1);
+    createDISC(writer_disc,MODE);
+    do{
+      r=write(fd,writer_disc,5);
       alarm(TIMEOUT);
-      if(r==1){
-        rec=buf[0];
-        validateDISC(rec,&stateDisc);
-        nTimeouts=0;
-      }
-      else if(r==-2){
-        r=write(fd,writer_disc,5);
-        r=-2;
-      }
-    }
+      do{
+        r=read(fd,buf,1);
+
+        if(r==1){
+          alarm(TIMEOUT);
+          rec=buf[0];
+          ret=validateDISC(rec,&stateDisc);
+          nTimeouts=0;
+        }
+        else if(r==0){
+          ret=0;
+          if(alarm_flag==1){
+            alarm_flag=0;
+            nTimeouts++;
+            ret=-1;
+          }
+        }
+      }while(ret==0);
+    }while( nTimeouts < RETRANSMIT && r<1);
+    alarm(0);
     if(nTimeouts==RETRANSMIT){
       printf("Error. Couldn't establish connection on closing.\n");
-      nTimeouts=0;
-      return;
+
+      return -1;
     }
-    
+    nTimeouts=0;
+
     createUA(writer_ua,WRITER);
     r=write(fd,writer_ua,5);
-    r=-2;
     stateDisc=0;
+    return 0;
   }
   else{
-    while(nTimeouts<=RETRANSMIT &&r<0){
+    alarm(TIMEOUT);
+    do{
       r=read(fd,buf,1);
-      alarm(TIMEOUT);
+
       if(r==1){
+        alarm(TIMEOUT);
         rec=buf[0];
-        validateDISC(r,&stateDisc);
+        ret=validateDISC(r,&stateDisc);
         nTimeouts=0;
-      } 
+      }
+      else{
+        ret=0;
+        if(alarm_flag==1){
+          alarm_flag=0;
+          ret=-1;
+          nTimeouts++;
+        }
+      }
+    }while(nTimeouts < RETRANSMIT && ret==0);
+    alarm(0);
+    if(nTimeouts==RETRANSMIT){
+      printf("Error. Couldn't establish connection on closing.\n");
+
+      return -1;
     }
+    nTimeouts=0;
+    stateDisc=0;
+
     createDISC(receiver_disc,RECEIVER);
     r=write(fd,receiver_disc,5);
-    
+    return 0;
+
   }
 }
 
-int createCtrlPckg(unsigned char** start,unsigned char** end,int tamanho,unsigned char* name){
-  int nameSz = sizeof(name);
+int createDtPckg(unsigned char* data,unsigned long dataSz,unsigned char** pack,int n){
+
+  int tam2 = dataSz /256;
+  int tam3 = dataSz % 256;
+  (*pack)=(unsigned char*) malloc(dataSz +4);
+  (*pack)[0]=0x01;
+  (*pack)[1]= n & 0xFF;
+  (*pack)[2]=tam2 & 0xFF;
+  (*pack)[3]=tam3 & 0xFF;
+  int i=0;
+  for(i=0;i<dataSz;i++){
+    (*pack)[4+i]=data[i];
+  }
+
+  return (dataSz+4);
+
+}
+
+int dePkgDt(unsigned char* pckg,unsigned long pckgSz,unsigned char** data){
+  (*data)=(unsigned char*)malloc(pckgSz-4);
+
+  int i;
+  for(i=0;i<pckgSz;i++){
+    (*data)[i]=pckg[i+4];
+  }
+
+  return (pckgSz-4);
+}
+int dePkgCtrl(unsigned char* pckg,unsigned long pckgSz,int* start,unsigned long* tamanho,unsigned char** name){
+
+  *start = (int)pckg[0];
+
+  if(pckg[1]==0x00){
+    int i=0;
+    *tamanho = (pckg[3]<<24) | (pckg[4]<<16) | (pckg[5]<<8) | (pckg[6]);
+    printf("tamanho = %lu\n",*tamanho);
+  }
+  else{
+    printf("not in order\n");
+  }
+  int tm;
+  if(pckg[7]==0x01){
+    tm=(int)pckg[8];
+    int j;
+    (*name)= malloc(tm);
+    for(j=0;j<tm;j++){
+      (*name)[j]=pckg[j+9];
+    }
+
+  }
+  else{
+    printf("not in order\n");
+  }
+  return tm;
+}
+int createCtrlPckg(unsigned char** start,unsigned char** end,int tamanho,unsigned char* name,unsigned long nameSz){
+
   int sizeSz = 4;
   unsigned char bytes[sizeSz];
 
-bytes[0] = (tamanho >> 24) & 0xFF;
-bytes[1] = (tamanho >> 16) & 0xFF;
-bytes[2] = (tamanho >> 8) & 0xFF;
-bytes[3] = tamanho & 0xFF;
+  bytes[0] = (tamanho >> 24) & 0xFF;
+  bytes[1] = (tamanho >> 16) & 0xFF;
+  bytes[2] = (tamanho >> 8) & 0xFF;
+  bytes[3] = tamanho & 0xFF;
 
   unsigned char nameSize;
   nameSize = nameSz & 0xFF;
@@ -826,16 +925,101 @@ bytes[3] = tamanho & 0xFF;
     (*end)[i]=name[j];
     j++;
   }
-  printChar(*start,5+nameSz+sizeSz);
   return (5 + nameSz + sizeSz);
 }
 
+void llwrite(int fd, unsigned char* data){
+  char rec,ret;
+  char buf[255];
+  int r;
+  int stateData=0;
+  int esc=0;
+  char* bcc;
+  char* stuffedData[255];
+  char* bccAdded[255];
+  char* final[255];
+
+  int i=0;
+  int timeout=0;
+
+  BCC2(data,bcc);
+  addBcc2(data,bccAdded,bcc,255)
+  stuffing(bccAdded,stuffedData,255);
+
+    do{
+    r= write(fd,buf,1);
+    if(r!=0)
+	{
+    rec=buf[0];
+    ret=validateWrt(rec,&stateData);
+	}
+    else if(r==0)
+	{
+    ret=-1;
+    }
+  }while(ret==0);
+
+
+
+
+   do{
+   if (ret==1)
+  completeData(suffedData,final,0,255);
+   r= read(fd,buf,5);
+   if (r==0x81)
+   return -1;
+   else if(r==0x85)
+	{
+	ret=0;
+	}
+	else
+	timeout++;
+	 }
+	while(timeout<3);
+
+  do{
+  if (ret==2)
+  completeData(suffedData,final,0,255);
+   r= read(fd,buf,5);
+   if (r==0x01)
+   return -1;
+   else if(r==0x05)
+	{
+	ret=0;
+	}
+	else
+	timeout++;
+	}
+	while(timeout<3);
+
+
+  if(timeout==3)
+  return -1;
+  else
+  timeout=0;
+
+}
+
+
+
+
+
+
+
+off_t fsize(char *filename) {
+    struct stat st;
+
+    if (stat(filename, &st) == 0)
+        return st.st_size;
+
+    return -1;
+}
 
 int main(int argc,unsigned char** argv)
 {
 
 
-// installing alarm
+  // installing alarm
   struct sigaction act;
   act.sa_handler = alarmhandler;
   sigemptyset (&act.sa_mask);
@@ -848,43 +1032,38 @@ int main(int argc,unsigned char** argv)
   int user = RECEIVER; //arg cenas
 
 
-  unsigned char* start, *end;
-  int size=createCtrlPckg(&start,&end,10,"file.jpg");
-  printChar(start,size);
-
-
-/*
+  /*
   fd = open(argv[1], O_RDWR | O_NOCTTY );
   if (fd <0) {perror(argv[1]); exit(-1); }
 
-    if ( tcgetattr(fd,&oldtio) == -1){
-      perror("tcgetattr");
-      exit(-1);
-    }
+  if ( tcgetattr(fd,&oldtio) == -1){
+  perror("tcgetattr");
+  exit(-1);
+}
 
-    char* file = argv[3];
-    //llopen
-    if(user == WRITER){
-    //abrir ficheiro
-    //guardar tamanho doficheiro
+char* file = argv[3];
+//llopen
+if(user == WRITER){
+//abrir ficheiro
+//guardar tamanho doficheiro
 
-    //fazemos o llopen
-    //criamso o pacote de controlo de inicio
-    //enviamos pelo ll write
-    //vamos lendo do ficheiro
-    //criando pacote de dado
-    //e enviando pelo llwrite
-    //chegamso ao fim do ficheiro
-    //mandamos o pacote de controlo de fim
-    }
-    //fazemos llclose
-
-
+//fazemos o llopen
+//criamso o pacote de controlo de inicio
+//enviamos pelo ll write
+//vamos lendo do ficheiro
+//criando pacote de dado
+//e enviando pelo llwrite
+//chegamso ao fim do ficheiro
+//mandamos o pacote de controlo de fim
+}
+//fazemos llclose
 
 
-    sleep(3);
-    tcsetattr(fd,TCSANOW,&oldtio);
-    close(fd);
-    */
-    exit(0);
-  }
+
+
+sleep(3);
+tcsetattr(fd,TCSANOW,&oldtio);
+close(fd);
+*/
+exit(0);
+}
