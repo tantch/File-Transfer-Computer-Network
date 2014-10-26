@@ -438,6 +438,57 @@ int validateSET(unsigned char set,int* stateSet){
 
 }
 
+int validateDISC(unsigned char disc,int* stateDisc){
+
+  switch(*stateDisc){
+    case 0:
+    if(disc == F){
+      *stateDisc=1;
+    }
+    return 0;
+    case 1:
+    if(disc == F){
+      *stateDisc=1;
+    }else if(disc == A1){
+      *stateDisc=2;
+    }else{
+      *stateDisc=0;
+    }
+    return 0;
+    case 2:
+    if(disc == F){
+      *stateDisc=1;
+    }else if(disc == CDISC){
+      *stateDisc=3;
+    }else{
+      *stateDisc=0;
+    }
+    return 0;
+    case 3:
+    if(disc == F){
+      *stateDisc=1;
+    }else if(disc == (A1 ^ CDISC)){
+      *stateDisc=4;
+    }else{
+      *stateDisc=0;
+    }
+    return 0;
+    case 4:
+    if(disc == F){
+      *stateDisc=5;
+      return 1;
+    }
+
+    else{
+      *stateDisc=0;
+    }
+    return 0;
+
+  }
+
+
+}
+
 
 
 /*configures the configurations of the serial port
@@ -686,23 +737,23 @@ int llread(int fd, char * buffer){
   }while(r!=5);
 }
 
+
 int llclose(int fd, int mode){
-int r;
+int r,rec,stateDisc=0;
 char* buf;
+char writer_ua[5],writer_disc[5],receiver_disc[5];
   if(mode==WRITER){
-    char* writer_disc;
+
     createDISC(writer_disc,WRITER);
     r=write(fd,writer_disc,5);
     r=-2;
     while( nTimeouts <= RETRANSMIT && r<0){
-      r=read(fd,buf,5);
+      r=read(fd,buf,1);
       alarm(TIMEOUT);
-      if(r==5){
-        char* writer_ua;
-        createUA(writer_ua,WRITER);
-        r=write(fd,writer_ua,5);
+      if(r==1){
+        rec=buf[0];
+        validateDISC(rec,&stateDisc);
         nTimeouts=0;
-        r=-2;
       }
       else if(r==-2){
         r=write(fd,writer_disc,5);
@@ -710,23 +761,32 @@ char* buf;
       }
     }
     if(nTimeouts==RETRANSMIT){
-      printf("Error. Couldn't establish connection.\n");
+      printf("Error. Couldn't establish connection on closing.\n");
       nTimeouts=0;
+      return;
     }
+    
+    createUA(writer_ua,WRITER);
+    r=write(fd,writer_ua,5);
+    r=-2;
+    stateDisc=0;
   }
   else{
-    char* receiver_disc;
-    createDISC(receiver_disc,RECEIVER);
-    r=read(fd,buf,5);
-    if(buf==5){
-      r=write(fd,receiver_disc,5);
+    while(nTimeouts<=RETRANSMIT &&r<0){
+      r=read(fd,buf,1);
+      alarm(TIMEOUT);
+      if(r==1){
+        rec=buf[0];
+        validateDISC(r,&stateDisc);
+        nTimeouts=0;
+      } 
     }
+    createDISC(receiver_disc,RECEIVER);
+    r=write(fd,receiver_disc,5);
+    
   }
-  
-
 }
 
-//falta mandar mensagens ao emissor
 int createCtrlPckg(unsigned char** start,unsigned char** end,int tamanho,unsigned char* name){
   int nameSz = sizeof(name);
   int sizeSz = 4;
