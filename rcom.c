@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <signal.h>
+#include <errno.h>
 
 
 #define BAUDRATE B38400
@@ -700,7 +701,10 @@ int llread(int fd, char * buffer){
   alarm(TIMEOUT);
   do{
     r= read(fd,buf,1);
-    if(r!=0){
+	if(r==-1){
+		printf("erro:%s\n",strerror(errno));	
+}
+    if(r==1){
       alarm(TIMEOUT);
       rec=buf[0];
       if(rec!= 0x7e){
@@ -711,13 +715,18 @@ int llread(int fd, char * buffer){
     else if(r==0){
       ret=0;
       if(alarm_flag==1){
-        alarm_flag==0;
+        alarm_flag=0;
         nTimeouts++;
-        ret=-1;
+		alarm(TIMEOUT);
       }
     }
   }while(ret==0 && nTimeouts<RETRANSMIT);
-
+	alarm(0);
+	if(nTimeouts==RETRANSMIT){
+		printf("Error. Couldn't establish connection.\n");
+      return -1;
+	}
+	nTimeouts=0;
   do{
 
     if (ret==2){//recebu uma trama de informação com Ns=0
@@ -1040,7 +1049,8 @@ int main(int argc,unsigned char** argv)
 
 	int r=llopen(fd,MODE);
 	printf("r:%i\n",r);
-
+	int cl=llclose(fd);
+	printf("cl:%i\n",cl);
 	
 
 /*
