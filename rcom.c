@@ -786,10 +786,12 @@ int llclose(int fd){
           if(alarm_flag==1){
             alarm_flag=0;
             nTimeouts++;
+			alarm(TIMEOUT);
             ret=-1;
           }
         }
       }while(ret==0);
+printf("ret:%i\n",ret);
     }while( nTimeouts < RETRANSMIT && r<1);
     alarm(0);
     if(nTimeouts==RETRANSMIT){
@@ -821,6 +823,7 @@ int llclose(int fd){
           alarm_flag=0;
           ret=-1;
           nTimeouts++;
+			alarm(TIMEOUT);
         }
       }
     }while(nTimeouts < RETRANSMIT && ret==0);
