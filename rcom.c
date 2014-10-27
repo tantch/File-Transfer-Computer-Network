@@ -1,7 +1,6 @@
-#include "general.h"
 #include "application.h"
-#include "validation.h"
 #include "link.h"
+
 
 
 /*configures the configurations of the serial port
@@ -122,7 +121,8 @@ void completeData(unsigned char* data, unsigned char* final,int c, int n,unsigne
 int main(int argc,unsigned char** argv)
 {
 
-
+  unsigned long datasize;
+  int idN=0;
   // installing alarm
   struct sigaction act;
   act.sa_handler = alarmhandler;
@@ -144,27 +144,36 @@ int main(int argc,unsigned char** argv)
 
   int r=llopen(fd,MODE);
   printf("r:%i\n",r);
+
+  if(MODE==RECEIVER){
+
+
+
+  }else if(MODE==WRITER){
+
+    //open do ficheiro
+    //guardar o tamanho do ficheiro
+    char* cenas = "ola a todos";//em vez dsito
+    unsigned long tam=sizeof(cenas);//e isto
+    char* nome="ola.txt";
+    unsigned long tm=sizeof(nome);
+    char* startCtrl,*endCtrl;
+    int re =createCtrlPckg(&startCtrl,&endCtrl,tam,nome,nome);
+    int p=llwrite(fd,startCtrl,re);
+    int nData =(int) tm/datasize +1;
+    int k=0;
+    for(k=0;k<nData;k++){
+      unsigned char* pack;
+     int ri=createDtPckg(cenas,tm,&pack,idN);
+     idN++;
+     p=llwrite(fd,pack,ri);
+
+    }
+    p=llwrite(fd,startCtrl,re);
+
+  }
   int cl=llclose(fd);
   printf("cl:%i\n",cl);
-
-
-    /*
-    char* file = argv[3];
-    //llopen
-    if(user == WRITER){
-    //abrir ficheiro
-    //guardar tamanho doficheiro
-
-    //fazemos o llopen
-    //criamso o pacote de controlo de inicio
-    //enviamos pelo ll write
-    //vamos lendo do ficheiro
-    //criando pacote de dado
-    //e enviando pelo llwrite
-    //chegamso ao fim do ficheiro
-    //mandamos o pacote de controlo de fim
-  }
-  //fazemos llclose
 
 
 
@@ -172,6 +181,6 @@ int main(int argc,unsigned char** argv)
   sleep(3);
   tcsetattr(fd,TCSANOW,&oldtio);
   close(fd);
-  */
+
   exit(0);
 }

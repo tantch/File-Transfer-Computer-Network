@@ -1,5 +1,7 @@
+#include "general.h"
 #ifndef _LINK_H
 #define _LINK_H
+
 
 int createDtPckg(unsigned char* data,unsigned long dataSz,unsigned char** pack,int n);
 int dePkgDt(unsigned char* pckg,unsigned long pckgSz,unsigned char** data);

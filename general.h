@@ -1,5 +1,3 @@
-#ifndef _GENERAL_H
-#define _GENERAL_H
 
 #include <linux/types.h>
 #include <linux/stat.h>
@@ -9,6 +7,8 @@
 #include <time.h>
 #include <signal.h>
 #include <errno.h>
+#ifndef _GENERAL_H
+#define _GENERAL_H
 
 
 #define BAUDRATE B38400
@@ -37,10 +37,10 @@
 #define TIMEOUT 3
 #define RETRANSMIT 3
 
-int nTimeouts=0;
-int alarm_flag=0;
+int nTimeouts;
+int alarm_flag;
 int MODE;
-int Ns=0;
+int Ns;
 
 
 void printChar(unsigned char* cena,int tam);

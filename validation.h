@@ -1,7 +1,7 @@
+#include "general.h"
 #ifndef _VALIDATE_H
 #define _VALIDATE_H
 
-#include "general.h"
 
 int validateRRJ(unsigned char data,int* stateRRJ);
 int validateUA(unsigned char data,int* stateUa);

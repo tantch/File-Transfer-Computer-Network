@@ -155,7 +155,7 @@ int llread(int fd, char * buffer){
   }while(r!=5);
 }
 
-void llwrite(int fd, unsigned char* data){
+int llwrite(int fd, unsigned char* data,int tm){
   char rec,ret;
   char buf[255];
   int r;
@@ -164,7 +164,7 @@ void llwrite(int fd, unsigned char* data){
   char* bcc;
   char* stuffedData;
   char* final;
-  int tm=(int)sizeof(data);
+
   int i=0;
   int timeout=0;
 
@@ -209,6 +209,7 @@ void llwrite(int fd, unsigned char* data){
   else if(ret==3 || ret==4){
     return -1;
   }
+  return 0;
 }
 
 int llclose(int fd){

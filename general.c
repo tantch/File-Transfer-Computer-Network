@@ -1,5 +1,11 @@
 #include "general.h"
 
+
+nTimeouts=0;
+alarm_flag=0;
+MODE=0;
+Ns=0;
+
 void printChar(unsigned char* cena,int tam){
   int i;
   for(i=0; i<tam;i++){
