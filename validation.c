@@ -9,7 +9,7 @@
 *     1-> recebido trama de confirmaçao RR com N(r)=0
 *     2-> recebido trama de confirmação RR com N(r)=1
 *     3-> recebido trama de rejeição REJ com N(r)=0
-*     4-> recebido trama de rejeição REJ com N(r)=0
+*     4-> recebido trama de rejeição REJ com N(r)=1
 */
 int validateRRJ(unsigned char data,int* stateRRJ){
   switch(*stateRRJ){
@@ -38,7 +38,14 @@ int validateRRJ(unsigned char data,int* stateRRJ){
       *stateRRJ=3;
     }else if(data == CRR1){
       *stateRRJ=6;
-    }else{
+  	}
+    else if(data==CREJ0){
+      *stateRRJ=8;
+    }
+    else if(data==CREJ1){
+      *stateRRJ=10;
+    }
+    else{
       *stateRRJ=0;
     }
     return 0;
@@ -63,6 +70,7 @@ int validateRRJ(unsigned char data,int* stateRRJ){
     }
     case 5:
     return -1;
+
     case 6:
     if(data == F){
       *stateRRJ=1;
@@ -75,13 +83,58 @@ int validateRRJ(unsigned char data,int* stateRRJ){
 
     case 7:
     if(data == F){
-      *stateRRJ=8;
+      *stateRRJ=12;
       return 2;
     }else{
       *stateRRJ=0;
       return 0;
     }
+
     case 8:
+    if(data==F){
+    	*stateRRJ=1;
+    }
+    else if(data==A1^CREJ0){
+    	*stateRRJ=10;
+    }
+    else{
+    	*stateRRJ=0;
+    	return 0;
+    }
+
+    case 9:
+    if(data==F){
+    	*stateRRJ=12;
+    	return 3;
+    }
+    else{
+    	*stateRRJ=0;
+    	return 0;
+    }
+
+    case 10:
+    if(data==F){
+    	*stateRRJ=1;
+    }
+    else if(data==A1^CREJ1){
+    	*stateRRJ=11;
+    }
+    else{
+    	*stateRRJ=0;
+    	return 0;
+    }
+
+    case 11:
+    if(data==F){
+    	*stateRRJ=12;
+    	return 4;
+    }
+    else{
+    	*stateRRJ=0;
+    	return 0;
+    }
+    
+    case 12:
     return -1;
   }
 }
