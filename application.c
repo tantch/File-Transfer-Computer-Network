@@ -28,10 +28,9 @@ int llopen(int fd,int mode){
         if(alarm_flag==1){
           alarm_flag=0;
           nTimeouts++;
-			alarm(TIMEOUT);
+	alarm(TIMEOUT);
         }
       }
-	printf("ret:%i\ntimeouts:%i\n",ret,nTimeouts);
     }while(ret==0 && nTimeouts<RETRANSMIT);
     alarm(0);
     if(nTimeouts==RETRANSMIT){
@@ -48,7 +47,7 @@ int llopen(int fd,int mode){
 
     unsigned char set[5];
     createSET(set,mode);
-    while(nTimeouts<RETRANSMIT && res<1){
+    do{
       res=write(fd,set,5);
       alarm(TIMEOUT);
       do{
@@ -70,12 +69,15 @@ int llopen(int fd,int mode){
           }
         }
       }while(ret==0);
-    }
-    alarm(0);
+    }while(nTimeouts<RETRANSMIT && res<1);
+    printf("writter leaving llopen cause nTimeouts:%i\n",nTimeouts);
     if(nTimeouts==RETRANSMIT){
+	nTimeouts=0;
+	alarm(0);
       printf("Error. Couldn't establish connection.\n");
       return -1;
     }
+alarm(0);
     nTimeouts=0;
     return 0;
 
@@ -83,7 +85,7 @@ int llopen(int fd,int mode){
 }
 
 int llread(int fd, char * buffer){
-  char rec,ret;
+  char rec,ret;	
   char buf[255];
   int r;
   int stateData=0;
@@ -156,6 +158,7 @@ int llread(int fd, char * buffer){
 }
 
 int llwrite(int fd, unsigned char* data,int tm){
+	printf("starting llwrite\n");
   char rec,ret;
   char buf[255];
   int r;
@@ -167,18 +170,18 @@ int llwrite(int fd, unsigned char* data,int tm){
 
   int i=0;
   int timeout=0;
-
   BCC2(data,&bcc,tm);
+  final=(unsigned char*)malloc(tm+5);
   tm=completeData(data,final,Ns,tm,bcc);
   stuffedData =(unsigned char *)malloc(tm*2);
   tm=stuffing(final,stuffedData,tm);
-
+	int p=0;
 
   do{
   r= write(fd,buf,tm);
     alarm(TIMEOUT);
     do{
-      int p=read(fd,buf,1);
+      p=read(fd,buf,1);
       if(p==1){
         alarm(TIMEOUT);
         rec=buf[0];
@@ -196,7 +199,9 @@ int llwrite(int fd, unsigned char* data,int tm){
       }
 
     }while(ret==0);
-  }while(nTimeouts<RETRANSMIT && r<1);
+  }while(nTimeouts<RETRANSMIT && p<1);
+	nTimeouts=0;
+	alarm(0);
 
   if(ret==1){
     Ns=0;

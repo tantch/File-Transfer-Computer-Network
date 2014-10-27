@@ -93,7 +93,7 @@ int stuffing(unsigned char* data, unsigned char* stuffed, int n){
 
 
 
-void completeData(unsigned char* data, unsigned char* final,int c, int n,unsigned char bcc2){
+int completeData(unsigned char* data, unsigned char* final,int c, int n,unsigned char bcc2){
   int i;
 
 
@@ -115,13 +115,14 @@ void completeData(unsigned char* data, unsigned char* final,int c, int n,unsigne
   final[3]=final[1]^final[2];
   final[n+4]=bcc2;
   final[n+5]=F;
+	return n+5;
 }
 
 
 int main(int argc,unsigned char** argv)
 {
 
-  unsigned long datasize;
+  unsigned long datasize=100;
   int idN=0;
   // installing alarm
   struct sigaction act;
@@ -133,7 +134,7 @@ int main(int argc,unsigned char** argv)
   MODE=(int)strtol(argv[2],NULL,2); //argv2 is reader
   int fd,c;
   struct termios oldtio;
-
+  printf("here\n");
   fd = open(argv[1], O_RDWR | O_NOCTTY );
   if (fd <0) {perror(argv[1]); exit(-1); }
 
@@ -158,8 +159,9 @@ int main(int argc,unsigned char** argv)
     char* nome="ola.txt";
     unsigned long tm=sizeof(nome);
     char* startCtrl,*endCtrl;
-    int re =createCtrlPckg(&startCtrl,&endCtrl,tam,nome,nome);
+    int re =createCtrlPckg(&startCtrl,&endCtrl,tam,nome,tm);
     int p=llwrite(fd,startCtrl,re);
+	printf("here2\n");
     int nData =(int) tm/datasize +1;
     int k=0;
     for(k=0;k<nData;k++){
