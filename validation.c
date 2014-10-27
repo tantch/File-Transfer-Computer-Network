@@ -384,7 +384,7 @@ int validateDISC(unsigned char disc,int* stateDisc){
     case 3:
     if(disc == F){
       *stateDisc=1;
-    }else if(disc == (A1 ^ CDISC)){
+    }else if(disc == (A1 ^ CDISC) || disc == (A0 ^ CDISC)){
       *stateDisc=4;
     }else{
       *stateDisc=0;

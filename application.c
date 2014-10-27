@@ -18,7 +18,7 @@ int llopen(int fd,int mode){
     do{
 
       res= read(fd,buf,1);
-      if(res!=0){
+      if(res==1){
         alarm(TIMEOUT);
         recv=buf[0];
         ret=validateSET(recv,&state);
@@ -35,6 +35,7 @@ int llopen(int fd,int mode){
     alarm(0);
     if(nTimeouts==RETRANSMIT){
       printf("Error. Couldn't establish connection.\n");
+nTimeouts=0;
       return -1;
     }
 
@@ -120,6 +121,7 @@ int llread(int fd, char * buffer){
   }while(ret==0 && nTimeouts<RETRANSMIT);
 	alarm(0);
 	if(nTimeouts==RETRANSMIT){
+nTimeouts=0;
 		printf("Error. Couldn't establish connection.\n");
       return -1;
 	}
@@ -218,9 +220,10 @@ int llwrite(int fd, unsigned char* data,int tm){
 }
 
 int llclose(int fd){
+  config(3,0,fd);
   int r,rec,stateDisc=0,stateUA=0;
   char* buf;
-  int ret;
+  int ret=0;
   char writer_ua[5],writer_disc[5],receiver_disc[5];
   if(MODE==WRITER){
 
@@ -243,8 +246,6 @@ int llclose(int fd){
           if(alarm_flag==1){
             alarm_flag=0;
             nTimeouts++;
-            r=write(fd,writer_disc,5);
-		      	alarm(TIMEOUT);
             ret=-1;
           }
         }
@@ -254,7 +255,7 @@ int llclose(int fd){
     alarm(0);
     if(nTimeouts==RETRANSMIT){
       printf("Error. Couldn't establish connection on closing.\n");
-
+	nTimeouts=0;
       return -1;
     }
     nTimeouts=0;
@@ -268,11 +269,10 @@ int llclose(int fd){
     alarm(TIMEOUT);
     do{
       r=read(fd,buf,1);
-
       if(r==1){
         alarm(TIMEOUT);
         rec=buf[0];
-        ret=validateDISC(r,&stateDisc);
+        ret=validateDISC(rec,&stateDisc);
         nTimeouts=0;
       }
       else{
@@ -280,14 +280,15 @@ int llclose(int fd){
         if(alarm_flag==1){
           alarm_flag=0;
           nTimeouts++;
-			    alarm(TIMEOUT);
+	alarm(TIMEOUT);
         }
       }
+	
     }while(nTimeouts < RETRANSMIT && ret<1);
     alarm(0);
     if(nTimeouts==RETRANSMIT){
       printf("Error. Couldn't establish connection on closing.\n");
-
+	nTimeouts=0;
       return -1;
     }
     nTimeouts=0;
@@ -314,9 +315,12 @@ int llclose(int fd){
         }
       }
     }while(nTimeouts <= RETRANSMIT && r==0);
+	alarm(0);
     if(nTimeouts==RETRANSMIT){
       printf("Error. Couldn't establish connection on closing.\n");
+	nTimeouts=0;
       return -1;
       }
+	nTimeouts=0;
     }
 }
