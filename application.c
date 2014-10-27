@@ -168,10 +168,10 @@ void llwrite(int fd, unsigned char* data){
   int i=0;
   int timeout=0;
 
-  BCC2(data,&bcc);
+  BCC2(data,&bcc,tm);
   tm=completeData(data,final,Ns,tm,bcc);
   stuffedData =(unsigned char *)malloc(tm*2);
-  tm=stuffing(bccAdded,stuffedData,tm);
+  tm=stuffing(final,stuffedData,tm);
 
 
   do{

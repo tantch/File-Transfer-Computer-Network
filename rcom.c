@@ -130,7 +130,7 @@ int main(int argc,unsigned char** argv)
   act.sa_flags = 0;
   sigaction(SIGALRM, &act, NULL);
 
-	MODE=(int)strtol(argv[2],NULL,2); //argv2 is reader
+  MODE=(int)strtol(argv[2],NULL,2); //argv2 is reader
   int fd,c;
   struct termios oldtio;
 
@@ -138,40 +138,40 @@ int main(int argc,unsigned char** argv)
   if (fd <0) {perror(argv[1]); exit(-1); }
 
   if ( tcgetattr(fd,&oldtio) == -1){
-  perror("tcgetattr");
-  exit(-1);
-	}
+    perror("tcgetattr");
+    exit(-1);
+  }
 
-	int r=llopen(fd,MODE);
-	printf("r:%i\n",r);
-	int cl=llclose(fd);
-	printf("cl:%i\n",cl);
-
-
-/*
-char* file = argv[3];
-//llopen
-if(user == WRITER){
-//abrir ficheiro
-//guardar tamanho doficheiro
-
-//fazemos o llopen
-//criamso o pacote de controlo de inicio
-//enviamos pelo ll write
-//vamos lendo do ficheiro
-//criando pacote de dado
-//e enviando pelo llwrite
-//chegamso ao fim do ficheiro
-//mandamos o pacote de controlo de fim
-}
-//fazemos llclose
+  int r=llopen(fd,MODE);
+  printf("r:%i\n",r);
+  int cl=llclose(fd);
+  printf("cl:%i\n",cl);
 
 
+    /*
+    char* file = argv[3];
+    //llopen
+    if(user == WRITER){
+    //abrir ficheiro
+    //guardar tamanho doficheiro
+
+    //fazemos o llopen
+    //criamso o pacote de controlo de inicio
+    //enviamos pelo ll write
+    //vamos lendo do ficheiro
+    //criando pacote de dado
+    //e enviando pelo llwrite
+    //chegamso ao fim do ficheiro
+    //mandamos o pacote de controlo de fim
+  }
+  //fazemos llclose
 
 
-sleep(3);
-tcsetattr(fd,TCSANOW,&oldtio);
-close(fd);
-*/
-exit(0);
+
+
+  sleep(3);
+  tcsetattr(fd,TCSANOW,&oldtio);
+  close(fd);
+  */
+  exit(0);
 }
