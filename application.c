@@ -86,7 +86,8 @@ alarm(0);
 }
 
 int llread(int fd, char * buffer){
-  char rec,ret;	
+  char rec;
+int ret=0;	
   char buf[255];
   int r;
   int stateData=0;
@@ -99,18 +100,18 @@ int llread(int fd, char * buffer){
   alarm(TIMEOUT);
   do{
     r= read(fd,buf,1);
-	if(r==-1){
-		printf("erro:%s\n",strerror(errno));
-  }
     if(r==1){
       alarm(TIMEOUT);
       rec=buf[0];
-      if(rec!= 0x7e){
-        ret=validateRcv(rec,&stateData);
+      ret=validateRcv(rec,&stateData);
+	printf("read byte 0x%x\n",rec);
+      printf("state:%i\n",stateData);
+      if(rec!= 0x7e && (stateData==7 || stateData==10)){
         destuffing(rec,buffer,&bccData, &esc,&i);
+	
       }
     }
-    else if(r==0){
+    else{
       ret=0;
       if(alarm_flag==1){
         alarm_flag=0;
@@ -121,7 +122,7 @@ int llread(int fd, char * buffer){
   }while(ret==0 && nTimeouts<RETRANSMIT);
 	alarm(0);
 	if(nTimeouts==RETRANSMIT){
-nTimeouts=0;
+	nTimeouts=0;
 		printf("Error. Couldn't establish connection.\n");
       return -1;
 	}

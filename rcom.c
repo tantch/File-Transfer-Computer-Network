@@ -147,8 +147,13 @@ int main(int argc,unsigned char** argv)
   printf("r:%i\n",r);
 
   if(MODE==RECEIVER){
-
-
+	int i;
+	unsigned char* buffer;
+buffer=malloc(255);
+	for(i=0;i<3;i++){
+		int c=llread(fd,buffer);
+		printChar(buffer,c);	
+	}
 
   }else if(MODE==WRITER){
 
