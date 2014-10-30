@@ -66,7 +66,8 @@ int destuffing(char sent,char* data,char* bcc,int* escape,int* destufcount){
 int stuffing(unsigned char* data, unsigned char* stuffed, int n){
   int i,r;
   r=0;
-  stuffed[0]=  data[0];
+  stuffed[r] =  data[0];
+  r++;
   for(i=1;i<n-1;i++){
     if(data[i]==F){
       stuffed[r]=ESC_BYTE;
@@ -91,8 +92,6 @@ int stuffing(unsigned char* data, unsigned char* stuffed, int n){
   return r;
 }
 
-
-
 int completeData(unsigned char* data, unsigned char* final,int c, int n,unsigned char bcc2){
   int i;
 
@@ -115,7 +114,7 @@ int completeData(unsigned char* data, unsigned char* final,int c, int n,unsigned
   final[3]=final[1]^final[2];
   final[n+4]=bcc2;
   final[n+5]=F;
-	return n+5;
+	return n+6;
 }
 
 
@@ -124,6 +123,7 @@ int main(int argc,unsigned char** argv)
 
   unsigned long datasize=100;
   int idN=0;
+
   // installing alarm
   struct sigaction act;
   act.sa_handler = alarmhandler;
@@ -134,60 +134,54 @@ int main(int argc,unsigned char** argv)
   MODE=(int)strtol(argv[2],NULL,2); //argv2 is reader
   int fd,c;
   struct termios oldtio;
-  printf("here\n");
   fd = open(argv[1], O_RDWR | O_NOCTTY );
-  if (fd <0) {perror(argv[1]); exit(-1); }
 
-  if ( tcgetattr(fd,&oldtio) == -1){
+  if (fd < 0){
+    perror(argv[1]); exit(-1); 
+  }
+
+  if (tcgetattr(fd,&oldtio) == -1){
     perror("tcgetattr");
     exit(-1);
   }
 
-  int r=llopen(fd,MODE);
+  int r = llopen(fd,MODE);
   printf("r:%i\n",r);
 
   if(MODE==RECEIVER){
-	int i;
-	unsigned char* buffer;
-buffer=malloc(255);
-	for(i=0;i<3;i++){
-		int c=llread(fd,buffer);
-		printChar(buffer,c);	
-	}
-
-  }else if(MODE==WRITER){
+  	int i;
+  	unsigned char* buffer;
+    buffer=malloc(255);
+  	
+    int c=llread(fd,buffer);
+  	printChar(buffer,c);	
+  }
+  else if(MODE==WRITER){
 
     //open do ficheiro
     //guardar o tamanho do ficheiro
-    char* cenas = "ola a todos";//em vez dsito
+    
+    char* cenas = "ola a todos"; //em vez dsito
     unsigned long tam=sizeof(cenas);//e isto
     char* nome="ola.txt";
     unsigned long tm=sizeof(nome);
-    char* startCtrl,*endCtrl;
+    char *startCtrl,*endCtrl;
     int re =createCtrlPckg(&startCtrl,&endCtrl,tam,nome,tm);
-    int p=llwrite(fd,startCtrl,re);
-	printf("here2\n");
+    //int p=llwrite(fd,startCtrl,re);
     int nData =(int) tm/datasize +1;
     int k=0;
-    for(k=0;k<nData;k++){
-      unsigned char* pack;
-     int ri=createDtPckg(cenas,tm,&pack,idN);
-     idN++;
-     p=llwrite(fd,pack,ri);
-
-    }
-    p=llwrite(fd,startCtrl,re);
-
+   
+    unsigned char* pack;
+    int ri=createDtPckg(cenas,tm,&pack,idN);
+    idN++;
+    int p=llwrite(fd,pack,ri);
+    
   }
   int cl=llclose(fd);
   printf("cl:%i\n",cl);
 
-
-
-
   sleep(3);
   tcsetattr(fd,TCSANOW,&oldtio);
   close(fd);
-
   exit(0);
 }

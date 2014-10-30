@@ -16,7 +16,6 @@ int llopen(int fd,int mode){
     createUA(ua,mode);
     alarm(TIMEOUT);
     do{
-
       res= read(fd,buf,1);
       if(res==1){
         alarm(TIMEOUT);
@@ -28,14 +27,14 @@ int llopen(int fd,int mode){
         if(alarm_flag==1){
           alarm_flag=0;
           nTimeouts++;
-	alarm(TIMEOUT);
+	        alarm(TIMEOUT);
         }
       }
     }while(ret==0 && nTimeouts<RETRANSMIT);
     alarm(0);
     if(nTimeouts==RETRANSMIT){
       printf("Error. Couldn't establish connection.\n");
-nTimeouts=0;
+      nTimeouts=0;
       return -1;
     }
 
@@ -71,14 +70,15 @@ nTimeouts=0;
         }
       }while(ret==0);
     }while(nTimeouts<RETRANSMIT && res<1);
-    printf("writter leaving llopen cause nTimeouts:%i\n",nTimeouts);
+    
     if(nTimeouts==RETRANSMIT){
-	nTimeouts=0;
-	alarm(0);
+	  nTimeouts=0;
+	  alarm(0);
       printf("Error. Couldn't establish connection.\n");
       return -1;
     }
-alarm(0);
+
+    alarm(0);
     nTimeouts=0;
     return 0;
 
@@ -87,7 +87,7 @@ alarm(0);
 
 int llread(int fd, char * buffer){
   char rec;
-int ret=0;	
+  int ret=0;	
   char buf[255];
   int r;
   int stateData=0;
@@ -97,36 +97,19 @@ int ret=0;
 
   printf("a começar a ler...\n");
 
-  alarm(TIMEOUT);
   do{
-    r= read(fd,buf,1);
+    r = read(fd,buf,1);
     if(r==1){
-      alarm(TIMEOUT);
       rec=buf[0];
       ret=validateRcv(rec,&stateData);
-	printf("read byte 0x%x\n",rec);
+	    printf("read byte 0x%x\n",rec);
       printf("state:%i\n",stateData);
       if(rec!= 0x7e && (stateData==7 || stateData==10)){
         destuffing(rec,buffer,&bccData, &esc,&i);
-	
       }
     }
-    else{
-      ret=0;
-      if(alarm_flag==1){
-        alarm_flag=0;
-        nTimeouts++;
-		alarm(TIMEOUT);
-      }
-    }
-  }while(ret==0 && nTimeouts<RETRANSMIT);
-	alarm(0);
-	if(nTimeouts==RETRANSMIT){
-	nTimeouts=0;
-		printf("Error. Couldn't establish connection.\n");
-      return -1;
-	}
-	nTimeouts=0;
+  }while(ret==0);
+
   do{
 
     if (ret==2){//recebu uma trama de informação com Ns=0
@@ -134,12 +117,16 @@ int ret=0;
         char rej_tmp[5];
         createREJ(rej_tmp,0,RECEIVER);
         r=write(fd,rej_tmp,5);
+        printf("\nreceiver sending REJ Ns=0: ");
+        printChar(rej_tmp,5);
         return -1;
       }
       else{
         char rr_temp[5];
         createRR(rr_temp,0,RECEIVER);
         r=write(fd,rr_temp,5);
+        printf("\nreceiver sending RR Ns=0:");
+        printChar(rr_temp,5); 
         return i-1;
       }
     }
@@ -148,12 +135,16 @@ int ret=0;
         char rej_tmp[5];
         createREJ(rej_tmp,1,RECEIVER);
         r=write(fd,rej_tmp,5);
+        printf("\nreceiver sending REJ Ns=1: ");
+        printChar(rej_tmp,5);
         return -1;
       }
       else{
         char rr_temp[5];
         createRR(rr_temp,1,RECEIVER);
         r=write(fd,rr_temp,5);
+        printf("\nreceiver sending RR Ns=1: ");
+        printChar(rr_temp,5);
         return i-1;
       }
     }
@@ -164,7 +155,7 @@ int llwrite(int fd, unsigned char* data,int tm){
 	printf("starting llwrite\n");
   char rec,ret;
   char buf[255];
-  int r;
+  int r, tm2,tm3;
   int stateRRJ=0;
   int esc=0;
   char* bcc;
@@ -174,14 +165,24 @@ int llwrite(int fd, unsigned char* data,int tm){
   int i=0;
   int timeout=0;
   BCC2(data,&bcc,tm);
+  printf("bcc calculated is 0x%x\n",bcc);
   final=(unsigned char*)malloc(tm+5);
-  tm=completeData(data,final,Ns,tm,bcc);
-  stuffedData =(unsigned char *)malloc(tm*2);
-  tm=stuffing(final,stuffedData,tm);
+  tm2=completeData(data,final,Ns,tm,bcc);
+  stuffedData =(unsigned char *)malloc(tm2*2);
+  tm3=stuffing(final,stuffedData,tm2);
 	int p=0;
 
+  printf("************\nDATA:\n");
+  printChar(data,tm);
+  printf("************\nFINAL DATA:\n");
+  printChar(final,tm2);
+  printf("************\nSTUFFED DATA:\n");
+  printChar(stuffedData,tm3);
+
+
+
   do{
-  r= write(fd,buf,tm);
+    r= write(fd,stuffedData,tm3);
     alarm(TIMEOUT);
     do{
       p=read(fd,buf,1);
@@ -256,7 +257,7 @@ int llclose(int fd){
     alarm(0);
     if(nTimeouts==RETRANSMIT){
       printf("Error. Couldn't establish connection on closing.\n");
-	nTimeouts=0;
+	    nTimeouts=0;
       return -1;
     }
     nTimeouts=0;

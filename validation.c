@@ -206,6 +206,7 @@ int validateUA(unsigned char data,int* stateUa){
 */
 int validateRcv(unsigned char data,int* stateRcv){
   switch(*stateRcv){
+
     case 0:
     if(data == F){
       *stateRcv=1;
@@ -254,6 +255,7 @@ int validateRcv(unsigned char data,int* stateRcv){
       *stateRcv=0;
       return 0;
     }
+    
     case 5:
     return -1;
 
@@ -281,7 +283,7 @@ int validateRcv(unsigned char data,int* stateRcv){
     case 9:
     if(data == (A1 ^ C1)){
       *stateRcv=10;
-    }else if(data== F){
+    }else if(data == F){
       *stateRcv=1;
     }	else{
       *stateRcv=0;
@@ -299,6 +301,7 @@ int validateRcv(unsigned char data,int* stateRcv){
     }
     case 11:
     return -1;
+
     default:
     return -1;
   }

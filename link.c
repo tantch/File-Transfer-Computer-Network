@@ -4,7 +4,7 @@
 
 int createDtPckg(unsigned char* data,unsigned long dataSz,unsigned char** pack,int n){
 
-  int tam2 = dataSz /256;
+  int tam2 = dataSz / 256;
   int tam3 = dataSz % 256;
   (*pack)=(unsigned char*) malloc(dataSz +4);
   (*pack)[0]=0x01;
