@@ -178,6 +178,8 @@ int main(int argc,unsigned char** argv)
     int p=llwrite(fd,pack,ri);
     
   }
+char lixo[255];
+	read(fd,lixo,255);
   int cl=llclose(fd);
   printf("cl:%i\n",cl);
 

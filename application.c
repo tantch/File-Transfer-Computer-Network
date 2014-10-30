@@ -225,9 +225,10 @@ int llwrite(int fd, unsigned char* data,int tm){
 
 int llclose(int fd){
 printf("entering close\n");
-  config(3,0,fd);
+  //config(3,0,fd);
   int r,rec,stateDisc=0,stateUA=0;
   char* buf;
+	buf=malloc(255);
   int ret=0;
   char writer_ua[5],writer_disc[5],receiver_disc[5];
   if(MODE==WRITER){
@@ -276,6 +277,7 @@ printf("entering close\n");
     alarm(TIMEOUT);
     do{
       r=read(fd,buf,1);
+		perror("error :");
       if(r==1){
         alarm(TIMEOUT);
         rec=buf[0];
