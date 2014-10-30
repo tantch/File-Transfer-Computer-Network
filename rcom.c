@@ -162,9 +162,10 @@ int main(int argc,unsigned char** argv)
     //guardar o tamanho do ficheiro
     
     char* cenas = "ola a todos"; //em vez dsito
-    unsigned long tam=sizeof(cenas);//e isto
+    unsigned long tam=11;
     char* nome="ola.txt";
-    unsigned long tm=sizeof(nome);
+    unsigned long tm=7;
+	printf("Pure data size = %lu \n",tam);
     char *startCtrl,*endCtrl;
     int re =createCtrlPckg(&startCtrl,&endCtrl,tam,nome,tm);
     //int p=llwrite(fd,startCtrl,re);
