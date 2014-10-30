@@ -173,7 +173,7 @@ int main(int argc,unsigned char** argv)
     int k=0;
    
     unsigned char* pack;
-    int ri=createDtPckg(cenas,tm,&pack,idN);
+    int ri=createDtPckg(cenas,tam,&pack,idN);
     idN++;
     int p=llwrite(fd,pack,ri);
     
