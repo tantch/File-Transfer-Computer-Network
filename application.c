@@ -101,14 +101,16 @@ int llread(int fd, char * buffer){
     r = read(fd,buf,1);
     if(r==1){
       rec=buf[0];
+		if(rec!= 0x7e && (stateData==7 || stateData==10)){
+        destuffing(rec,buffer,&bccData, &esc,&i);
+      }
       ret=validateRcv(rec,&stateData);
 	    printf("read byte 0x%x\n",rec);
       printf("state:%i\n",stateData);
-      if(rec!= 0x7e && (stateData==7 || stateData==10)){
-        destuffing(rec,buffer,&bccData, &esc,&i);
-      }
+      
     }
   }while(ret==0);
+printf("bcc is equal to: 0x%x\n",bccData);
 
   do{
 
@@ -222,6 +224,7 @@ int llwrite(int fd, unsigned char* data,int tm){
 }
 
 int llclose(int fd){
+printf("entering close\n");
   config(3,0,fd);
   int r,rec,stateDisc=0,stateUA=0;
   char* buf;
@@ -232,6 +235,7 @@ int llclose(int fd){
     createDISC(writer_disc,MODE);
     do{
       r=write(fd,writer_disc,5);
+		printf("wrote %i bytes\n",r);
       alarm(TIMEOUT);
       do{
         r=read(fd,buf,1);
@@ -268,6 +272,7 @@ int llclose(int fd){
     return 0;
   }
   else{
+	printf("receiver\n");
     alarm(TIMEOUT);
     do{
       r=read(fd,buf,1);
@@ -275,6 +280,7 @@ int llclose(int fd){
         alarm(TIMEOUT);
         rec=buf[0];
         ret=validateDISC(rec,&stateDisc);
+		printf("state after validate:%i\n",stateDisc);
         nTimeouts=0;
       }
       else{
