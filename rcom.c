@@ -157,7 +157,9 @@ int main(int argc,unsigned char** argv)
   	printChar(buffer,c);	
   }
   else if(MODE==WRITER){
-
+    const char* fpath="pinguim.gif";
+    const char* fmode=O_WRONLY|O_CREAT|O_TRUNC;
+    int f=open_file(fpath,fmode);
     //open do ficheiro
     //guardar o tamanho do ficheiro
     

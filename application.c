@@ -1,5 +1,38 @@
 #include "application.h"
 
+
+int open_file(char* fpath, char* mode){
+
+  FILE *f = open( fpath, mode );
+  if (f<0) return 0;
+  else {
+    FINFO.f=f;
+    return 1;
+  }
+
+}
+
+int getFileSize(){
+ 
+  int size = -1;
+
+  if (fseek(FINFO.f, 0, SEEK_END)<0)
+    return -1;
+
+    
+  if( (size = ftell(FINFO.f)) < 0)
+    return -1;
+  
+  
+  fclose(FINFO.f);
+  
+  FINFO.size = size;
+  
+  return 1;
+
+
+}
+
 int llopen(int fd,int mode){
 
   char buf[255];

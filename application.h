@@ -3,7 +3,13 @@
 #ifndef _APP_H
 #define _APP_H
 
+struct fInfo{
+	int f;
+	int size;
+} FINFO;
 
+int open_file(char* fpath, char* mode);
+int getFileSize();
 
 int llopen(int fd,int mode);
 int llread(int fd, char * buffer);
