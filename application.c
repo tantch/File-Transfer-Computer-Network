@@ -1,10 +1,10 @@
 #include "application.h"
 
 
-int open_file(char* fpath, char* mode){
+int open_file(const char* fpath, char* mode){
 
-  FILE *f = open( fpath, mode );
-  if (f<0) return 0;
+  FILE * f = open( fpath, mode );
+  if (f<=0) return 0;
   else {
     FINFO.f=f;
     return 1;
@@ -13,21 +13,21 @@ int open_file(char* fpath, char* mode){
 }
 
 int getFileSize(){
- 
+
   int size = -1;
+  printf(" file des:%i\n",FINFO.f);
+  if( fseek(FINFO.f, 0L, SEEK_END) < 0) {
+      return -1;
+  }
 
-  if (fseek(FINFO.f, 0, SEEK_END)<0)
-    return -1;
-
-    
+  printf("here\n");
   if( (size = ftell(FINFO.f)) < 0)
     return -1;
-  
-  
-  fclose(FINFO.f);
-  
+  printf("size:%i\n",size);
+  fseek(FINFO.f, 0, SEEK_SET);
+
   FINFO.size = size;
-  
+
   return 1;
 
 
@@ -103,7 +103,7 @@ int llopen(int fd,int mode){
         }
       }while(ret==0);
     }while(nTimeouts<RETRANSMIT && res<1);
-    
+
     if(nTimeouts==RETRANSMIT){
 	  nTimeouts=0;
 	  alarm(0);
@@ -120,7 +120,7 @@ int llopen(int fd,int mode){
 
 int llread(int fd, char * buffer){
   char rec;
-  int ret=0;	
+  int ret=0;
   char buf[255];
   int r;
   int stateData=0;
@@ -128,7 +128,7 @@ int llread(int fd, char * buffer){
   int esc=0;
   int i=0;
 
-  printf("a começar a ler...\n");
+  printf("a come�ar a ler...\n");
 
   do{
     r = read(fd,buf,1);
@@ -140,14 +140,14 @@ int llread(int fd, char * buffer){
       ret=validateRcv(rec,&stateData);
 	    printf("read byte 0x%x\n",rec);
       printf("state:%i\n",stateData);
-      
+
     }
   }while(ret==0);
 printf("bcc is equal to: 0x%x\n",bccData);
 
   do{
 
-    if (ret==2){//recebu uma trama de informação com Ns=0
+    if (ret==2){//recebu uma trama de informa��o com Ns=0
       if(bccData!=0){
         char rej_tmp[5];
         createREJ(rej_tmp,0,RECEIVER);
@@ -161,11 +161,11 @@ printf("bcc is equal to: 0x%x\n",bccData);
         createRR(rr_temp,0,RECEIVER);
         r=write(fd,rr_temp,5);
         printf("\nreceiver sending RR Ns=0:");
-        printChar(rr_temp,5); 
+        printChar(rr_temp,5);
         return i-1;
       }
     }
-    else if(ret==3){//recebeu uma trama de informação com Ns=1
+    else if(ret==3){//recebeu uma trama de informa��o com Ns=1
       if(bccData!=0){
         char rej_tmp[5];
         createREJ(rej_tmp,1,RECEIVER);
@@ -326,7 +326,7 @@ printf("entering close\n");
 	alarm(TIMEOUT);
         }
       }
-	
+
     }while(nTimeouts < RETRANSMIT && ret<1);
     alarm(0);
     if(nTimeouts==RETRANSMIT){

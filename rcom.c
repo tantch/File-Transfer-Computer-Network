@@ -137,7 +137,7 @@ int main(int argc,unsigned char** argv)
   fd = open(argv[1], O_RDWR | O_NOCTTY );
 
   if (fd < 0){
-    perror(argv[1]); exit(-1); 
+    perror(argv[1]); exit(-1);
   }
 
   if (tcgetattr(fd,&oldtio) == -1){
@@ -152,17 +152,21 @@ int main(int argc,unsigned char** argv)
   	int i;
   	unsigned char* buffer;
     buffer=malloc(255);
-  	
+
     int c=llread(fd,buffer);
-  	printChar(buffer,c);	
+  	printChar(buffer,c);
   }
   else if(MODE==WRITER){
     const char* fpath="pinguim.gif";
-    const char* fmode=O_WRONLY|O_CREAT|O_TRUNC;
+    const char* fmode=O_RDONLY;
     int f=open_file(fpath,fmode);
+    printf("file opened with f:%i\n",f);
+    int fs=getFileSize();
+    printf("fs:%i",fs);
+    printf("file size : %lu\n",FINFO.size);
     //open do ficheiro
     //guardar o tamanho do ficheiro
-    
+
     char* cenas = "ola a todos"; //em vez dsito
     unsigned long tam=11;
     char* nome="ola.txt";
@@ -173,12 +177,12 @@ int main(int argc,unsigned char** argv)
     //int p=llwrite(fd,startCtrl,re);
     int nData =(int) tm/datasize +1;
     int k=0;
-   
+
     unsigned char* pack;
     int ri=createDtPckg(cenas,tam,&pack,idN);
     idN++;
     int p=llwrite(fd,pack,ri);
-    
+
   }
 char lixo[255];
 	read(fd,lixo,255);

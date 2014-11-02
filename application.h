@@ -4,11 +4,11 @@
 #define _APP_H
 
 struct fInfo{
-	int f;
+	FILE * f;
 	int size;
 } FINFO;
 
-int open_file(char* fpath, char* mode);
+int open_file(const char* fpath, char* mode);
 int getFileSize();
 
 int llopen(int fd,int mode);
