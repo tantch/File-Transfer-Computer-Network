@@ -135,7 +135,7 @@ int llread(int fd, char * buffer){
   do{
 
     r = read(fd,buf,1);
-    printf("R:%i\n",r);
+    //printf("R:%i\n",r);
     if(r==1){
       rec=buf[0];
 		if(rec!= 0x7e && (stateData==7 || stateData==10)){
@@ -230,7 +230,7 @@ int llwrite(int fd, unsigned char* data,int tm){
     alarm(TIMEOUT);
     do{
       p=read(fd,buf,1);
-      printf("p:%i\n",p);
+      //printf("p:%i\n",p);
       if(p==-1){
         perror("Error:");
         ret=-1;
@@ -239,7 +239,7 @@ int llwrite(int fd, unsigned char* data,int tm){
         alarm(TIMEOUT);
         rec=buf[0];
         ret=validateRRJ(rec,&stateRRJ);
-        printf("state modified to:%i\n",stateRRJ);
+        //printf("state modified to:%i\n",stateRRJ);
       }
       else{
         ret=0;
