@@ -1,6 +1,6 @@
 #include "application.h"
 #include "link.h"
-#define DATASIZE 1
+#define DATASIZE 100
 
 
 /*configures the configurations of the serial port
@@ -147,7 +147,7 @@ int aplRead(int fd){
   int counter=(int)fileSize;
   unsigned char * data;
   const char* fmode="wb";
-  int f=open_file("pinguim2.gif",fmode);
+  int f=open_file(name,fmode);
   if(f==0){
     printf("Error opening file\n");
     return -1;
