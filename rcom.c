@@ -155,7 +155,7 @@ int aplRead(int fd){
   int n;
   int re=0;
   while(counter>0){
-    printf("Counter:%i\n",counter);
+    //printf("Counter:%i\n",counter);
     do{
       c=llread(fd,buffer);
     }while(c<0);
@@ -210,7 +210,7 @@ int aplWrite(int fd,char* fileName){
   unsigned char* pack;
   int counter=FINFO.size;
   while(counter>0){
-    printf("Counter1:%i\n",counter);
+    //printf("Counter1:%i\n",counter);
     int tam=fread(buf, sizeof(char), AINFO.maxSize, FINFO.f);
     int ri=createDtPckg(buf,tam,&pack,idN);
     idN++;
