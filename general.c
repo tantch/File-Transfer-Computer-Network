@@ -107,6 +107,7 @@ void createREJ(unsigned char* rej,int Nr,int mode){
 void BCC2(unsigned char* data, unsigned char* final, int n){
   int i;
   for (i=0;i<n;i++){
+    //printf("calculaing xor of 0x%x and 0x%x\n",(*final),data[i]);
     (*final)=data[i]^(*final);
   }
 }

@@ -1,6 +1,6 @@
 #include "application.h"
 #include "link.h"
-
+#define DATASIZE 10
 
 
 /*configures the configurations of the serial port
@@ -121,9 +121,8 @@ int completeData(unsigned char* data, unsigned char* final,int c, int n,unsigned
 int main(int argc,unsigned char** argv)
 {
 
-  unsigned long datasize=100;
   int idN=0;
-
+  unsigned char* buf=(unsigned char*) malloc(DATASIZE);
   // installing alarm
   struct sigaction act;
   act.sa_handler = alarmhandler;
@@ -152,13 +151,35 @@ int main(int argc,unsigned char** argv)
   	int i;
   	unsigned char* buffer;
     buffer=malloc(255);
+    //first ctrl
+    unsigned long fileSize;
+    unsigned char* name;
+    int cbyte,c,r;
+    do{
+      c=llread(fd,buffer);
+      r=dePkgCtrl(buffer,c,&cbyte,&fileSize,&name);
+    }while(cbyte!=2);
+    printf("File name:%s\nfile size:%lu\n",name,fileSize);
+    int counter=(int)fileSize;
+    unsigned char * data;
+    const char* fmode="wb";
+    int f=open_file("pinguim2.gif",fmode);
 
-    int c=llread(fd,buffer);
-  	printChar(buffer,c);
+    while(counter>0){
+      printf("Couter:%i\n",counter);
+     c=llread(fd,buffer);
+     r= dePkgDt(buffer,c,&data);
+     fwrite(data, sizeof(char), r, FINFO.f);
+     //TODO se sucesso
+     counter-=r;
+    }
+  	//printChar(buffer,c);
   }
   else if(MODE==WRITER){
     const char* fpath="pinguim.gif";
-    const char* fmode=O_RDONLY;
+    int tm= strlen(fpath);
+    printf("Name size :%i\n",tm);
+    const char* fmode="rb";
     int f=open_file(fpath,fmode);
     printf("file opened with f:%i\n",f);
     int fs=getFileSize();
@@ -167,21 +188,22 @@ int main(int argc,unsigned char** argv)
     //open do ficheiro
     //guardar o tamanho do ficheiro
 
-    char* cenas = "ola a todos"; //em vez dsito
-    unsigned long tam=11;
-    char* nome="ola.txt";
-    unsigned long tm=7;
-	printf("Pure data size = %lu \n",tam);
     char *startCtrl,*endCtrl;
-    int re =createCtrlPckg(&startCtrl,&endCtrl,tam,nome,tm);
-    //int p=llwrite(fd,startCtrl,re);
-    int nData =(int) tm/datasize +1;
+    int re =createCtrlPckg(&startCtrl,&endCtrl,FINFO.size,fpath,tm);
+    int p=llwrite(fd,startCtrl,re);
     int k=0;
 
     unsigned char* pack;
-    int ri=createDtPckg(cenas,tam,&pack,idN);
-    idN++;
-    int p=llwrite(fd,pack,ri);
+    int counter=FINFO.size;
+    while(counter>0){
+      printf("Couter:%i\n",counter);
+      int tam=fread(buf, sizeof(char), DATASIZE, FINFO.f);
+      int ri=createDtPckg(buf,tam,&pack,idN);
+      idN++;
+      int p=llwrite(fd,pack,ri);
+      counter-=tam;
+    }
+    //p=llwrite(fd,endCtrl,re);
 
   }
 char lixo[255];
