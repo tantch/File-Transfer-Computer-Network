@@ -260,14 +260,16 @@ int main(int argc,unsigned char** argv)
     exit(-1);
   }
 
-  if(argc>3){
-    AINFO.filename=argv[3];
+  if(argc>4){
+    AINFO.filename=argv[4];
+    printf("%s\n",argv[4]);
   }
   else{
     AINFO.filename="pinguim.gif";
   }
-  if(argc>4){
-    AINFO.maxSize=argv[4];
+  if(argc>3){
+    AINFO.maxSize=argv[3];
+    printf("%x\n",argv[3]);
   }
   else{
     AINFO.maxSize=100;
