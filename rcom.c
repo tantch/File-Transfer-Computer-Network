@@ -167,7 +167,12 @@ int aplRead(int fd){
   printf("finished reading \n");
   char lixo[255];
   read(fd,lixo,255);
-  //TODO close file
+
+
+  do{
+    c=llread(fd,buffer);
+  } while(c<0);
+  r=dePkgCtrl(buffer,c,&cbyte,&fileSize,&name);
   int cl=llclose(fd);
   if(cl<0){
     printf("Error closing connection\n");
@@ -206,7 +211,6 @@ int aplWrite(int fd,char* fileName){
     p=llwrite(fd,startCtrl,re);
   }while(p==-1);
   int k=0;
-
   unsigned char* pack;
   int counter=FINFO.size;
   while(counter>0){
@@ -223,7 +227,9 @@ int aplWrite(int fd,char* fileName){
     }
     counter-=tam;
   }
-  //p=llwrite(fd,endCtrl,re);
+  do{
+    p=llwrite(fd,endCtrl,re);
+  }while(p==-1);
   printf("finished reading \n");
   int cl=llclose(fd);
   if(cl<0){
