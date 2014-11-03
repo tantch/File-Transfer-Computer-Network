@@ -213,7 +213,6 @@ int llwrite(int fd, unsigned char* data,int tm){
   stuffedData =(unsigned char *)malloc(AINFO.maxSize*2);
   tm3=stuffing(final,stuffedData,tm2);
 	int p=0;
-  free(final);
 
   /*printf("************\nDATA:\n");
   printChar(data,tm);
@@ -262,7 +261,6 @@ int llwrite(int fd, unsigned char* data,int tm){
   }
 	nTimeouts=0;
 	alarm(0);
-  free(stuffedData);
 
   if(ret==1){
     Ns=0;
