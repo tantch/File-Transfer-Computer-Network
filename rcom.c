@@ -1,6 +1,6 @@
 #include "application.h"
 #include "link.h"
-#define DATASIZE 100
+#define DATASIZE 1
 
 
 /*configures the configurations of the serial port
@@ -134,9 +134,9 @@ int aplRead(int fd){
     return -1;
   }
 
-  //do{
+  do{
     c=llread(fd,buffer);
-  //} while(c<0);
+  } while(c<0);
   r=dePkgCtrl(buffer,c,&cbyte,&fileSize,&name);
 
   if(cbyte !=2){
@@ -156,14 +156,15 @@ int aplRead(int fd){
   int re=0;
   while(counter>0){
     //printf("Counter:%i\n",counter);
-    //do{
+    do{
       c=llread(fd,buffer);
-    //}while(c<0);
+    }while(c<0);
     re= dePkgDt(buffer,c,&data,&n);
 
     counter-=re;
     fwrite(data, sizeof(char), re, FINFO.f);
   }
+  printf("finished reading \n");
   char lixo[255];
   read(fd,lixo,255);
   //TODO close file
@@ -201,9 +202,9 @@ int aplWrite(int fd,char* fileName){
   char *startCtrl,*endCtrl;
   int re =createCtrlPckg(&startCtrl,&endCtrl,FINFO.size,fpath,tm);
   int p;
-  //do{
+  do{
     p=llwrite(fd,startCtrl,re);
-  //}while(p!=-1);
+  }while(p==-1);
   int k=0;
 
   unsigned char* pack;
@@ -213,13 +214,17 @@ int aplWrite(int fd,char* fileName){
     int tam=fread(buf, sizeof(char), DATASIZE, FINFO.f);
     int ri=createDtPckg(buf,tam,&pack,idN);
     idN++;
-    //do{
-    p=llwrite(fd,pack,ri);
-    //}while(p!=-1);
+    do{
+      p=llwrite(fd,pack,ri);
+    }while(p==-1);
+    if(p==-2){
+      printf("Timed out \n");
+      return -1;
+    }
     counter-=tam;
   }
   //p=llwrite(fd,endCtrl,re);
-
+  printf("finished reading \n");
   int cl=llclose(fd);
   if(cl<0){
     printf("Failed to close connection\n");

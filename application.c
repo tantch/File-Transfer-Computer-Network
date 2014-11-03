@@ -135,6 +135,7 @@ int llread(int fd, char * buffer){
   do{
 
     r = read(fd,buf,1);
+    printf("R:%i\n",r);
     if(r==1){
       rec=buf[0];
 		if(rec!= 0x7e && (stateData==7 || stateData==10)){
@@ -223,17 +224,24 @@ int llwrite(int fd, unsigned char* data,int tm){
 
 
   do{
+    //printf("this cycle\n");
+    stateRRJ=0;
     r= write(fd,stuffedData,tm3);
     alarm(TIMEOUT);
     do{
       p=read(fd,buf,1);
+      printf("p:%i\n",p);
+      if(p==-1){
+        perror("Error:");
+        ret=-1;
+      }
       if(p==1){
         alarm(TIMEOUT);
         rec=buf[0];
         ret=validateRRJ(rec,&stateRRJ);
-
+        printf("state modified to:%i\n",stateRRJ);
       }
-      else if(p==0){
+      else{
         ret=0;
         if(alarm_flag==1){
           alarm_flag=0;
@@ -244,7 +252,13 @@ int llwrite(int fd, unsigned char* data,int tm){
       }
 
     }while(ret==0);
+    //printf("ntimeouts:%i\n",nTimeouts);
   }while(nTimeouts<RETRANSMIT && p<1);
+  if(nTimeouts==RETRANSMIT){
+    nTimeouts=0;
+    alarm(0);
+    return -2;
+  }
 	nTimeouts=0;
 	alarm(0);
 
@@ -263,7 +277,7 @@ int llwrite(int fd, unsigned char* data,int tm){
 }
 
 int llclose(int fd){
-//printf("entering close\n");
+  printf("entering close\n");
   //config(3,0,fd);
   int r,rec,stateDisc=0,stateUA=0;
   char* buf;
@@ -309,6 +323,7 @@ int llclose(int fd){
     createUA(writer_ua,WRITER);
     r=write(fd,writer_ua,5);
     stateDisc=0;
+    printf("leaving close\n");
     return 0;
   }
   else{
@@ -372,4 +387,5 @@ int llclose(int fd){
       }
 	nTimeouts=0;
     }
+    printf("leaving close\n");
 }
