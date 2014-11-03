@@ -7,6 +7,10 @@ struct fInfo{
 	FILE * f;
 	int size;
 } FINFO;
+struct aInfo{
+	int maxSize;
+	char* filename;
+} AINFO;
 
 int open_file(const char* fpath, char* mode);
 int getFileSize();

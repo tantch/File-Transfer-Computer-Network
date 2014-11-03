@@ -1,6 +1,6 @@
 #include "application.h"
 #include "link.h"
-#define DATASIZE 100
+
 
 
 /*configures the configurations of the serial port
@@ -119,7 +119,7 @@ int completeData(unsigned char* data, unsigned char* final,int c, int n,unsigned
 
 int aplRead(int fd){
   int idN=0;
-  unsigned char* buf=(unsigned char*) malloc(DATASIZE);
+  unsigned char* buf=(unsigned char*) malloc(AINFO.maxSize);
   int NC=0;
   int i;
   unsigned char* buffer;
@@ -155,7 +155,7 @@ int aplRead(int fd){
   int n;
   int re=0;
   while(counter>0){
-    //printf("Counter:%i\n",counter);
+    printf("Counter:%i\n",counter);
     do{
       c=llread(fd,buffer);
     }while(c<0);
@@ -177,7 +177,7 @@ int aplRead(int fd){
 }
 int aplWrite(int fd,char* fileName){
   int idN=0;
-  unsigned char* buf=(unsigned char*) malloc(DATASIZE);
+  unsigned char* buf=(unsigned char*) malloc(AINFO.maxSize);
   const char* fpath=fileName;
   int tm= strlen(fpath);
   printf("Name size :%i\n",tm);
@@ -210,8 +210,8 @@ int aplWrite(int fd,char* fileName){
   unsigned char* pack;
   int counter=FINFO.size;
   while(counter>0){
-    //printf("Counter1:%i\n",counter);
-    int tam=fread(buf, sizeof(char), DATASIZE, FINFO.f);
+    printf("Counter1:%i\n",counter);
+    int tam=fread(buf, sizeof(char), AINFO.maxSize, FINFO.f);
     int ri=createDtPckg(buf,tam,&pack,idN);
     idN++;
     do{
@@ -260,7 +260,18 @@ int main(int argc,unsigned char** argv)
     exit(-1);
   }
 
-
+  if(argc>3){
+    AINFO.filename=argv[3];
+  }
+  else{
+    AINFO.filename="pinguim.gif";
+  }
+  if(argc>4){
+    AINFO.maxSize=argv[4];
+  }
+  else{
+    AINFO.maxSize=100;
+  }
 
 
   if(MODE==RECEIVER){
@@ -268,7 +279,7 @@ int main(int argc,unsigned char** argv)
 
   }
   else if(MODE==WRITER){
-    aplWrite(fd,"pinguim.gif");
+    aplWrite(fd,AINFO.filename);
 
   }
 

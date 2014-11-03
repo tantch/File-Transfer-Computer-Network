@@ -210,7 +210,7 @@ int llwrite(int fd, unsigned char* data,int tm){
   //printf("bcc calculated is 0x%x\n",bcc);
   final=(unsigned char*)malloc(tm+5);
   tm2=completeData(data,final,Ns,tm,bcc);
-  stuffedData =(unsigned char *)malloc(tm2*2);
+  stuffedData =(unsigned char *)malloc(AINFO.maxSize*2);
   tm3=stuffing(final,stuffedData,tm2);
 	int p=0;
 
