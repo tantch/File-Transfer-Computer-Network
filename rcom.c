@@ -1,6 +1,6 @@
 #include "application.h"
 #include "link.h"
-#define DATASIZE 10
+#define DATASIZE 100
 
 
 /*configures the configurations of the serial port
@@ -117,12 +117,123 @@ int completeData(unsigned char* data, unsigned char* final,int c, int n,unsigned
 	return n+6;
 }
 
+int aplRead(int fd){
+  int idN=0;
+  unsigned char* buf=(unsigned char*) malloc(DATASIZE);
+  int NC=0;
+  int i;
+  unsigned char* buffer;
+  buffer=malloc(255);
+  //first ctrl
+  unsigned long fileSize;
+  unsigned char* name;
+  int cbyte,c,r;
+  r = llopen(fd,MODE);
+  if(r<0){
+    printf("Failed to open conection\n");
+    return -1;
+  }
+
+  //do{
+    c=llread(fd,buffer);
+  //} while(c<0);
+  r=dePkgCtrl(buffer,c,&cbyte,&fileSize,&name);
+
+  if(cbyte !=2){
+    printf("Error: first pakage was not start control package\n");
+    return -1;
+  }
+  printf("File name:%s\nfile size:%lu\n",name,fileSize);
+  int counter=(int)fileSize;
+  unsigned char * data;
+  const char* fmode="wb";
+  int f=open_file("pinguim2.gif",fmode);
+  if(f==0){
+    printf("Error opening file\n");
+    return -1;
+  }
+  int n;
+  int re=0;
+  while(counter>0){
+    //printf("Counter:%i\n",counter);
+    //do{
+      c=llread(fd,buffer);
+    //}while(c<0);
+    re= dePkgDt(buffer,c,&data,&n);
+
+    counter-=re;
+    fwrite(data, sizeof(char), re, FINFO.f);
+  }
+  char lixo[255];
+  read(fd,lixo,255);
+  //TODO close file
+  int cl=llclose(fd);
+  if(cl<0){
+    printf("Error closing connection\n");
+    return -1;
+  }
+  return 0;
+}
+int aplWrite(int fd,char* fileName){
+  int idN=0;
+  unsigned char* buf=(unsigned char*) malloc(DATASIZE);
+  const char* fpath=fileName;
+  int tm= strlen(fpath);
+  printf("Name size :%i\n",tm);
+  const char* fmode="rb";
+  int f=open_file(fpath,fmode);
+  if(f==0){
+    printf("Failed to open file\n");
+    return -1;
+  }
+  printf("file opened with f:%i\n",f);
+  int fs=getFileSize();
+  printf("fs:%i",fs);
+  printf("file size : %lu\n",FINFO.size);
+  //open do ficheiro
+  //guardar o tamanho do ficheiro
+  int r = llopen(fd,MODE);
+  if(r<0){
+    printf("Failed to open connection\n");
+    return -1;
+  }
+
+  char *startCtrl,*endCtrl;
+  int re =createCtrlPckg(&startCtrl,&endCtrl,FINFO.size,fpath,tm);
+  int p;
+  //do{
+    p=llwrite(fd,startCtrl,re);
+  //}while(p!=-1);
+  int k=0;
+
+  unsigned char* pack;
+  int counter=FINFO.size;
+  while(counter>0){
+    //printf("Counter1:%i\n",counter);
+    int tam=fread(buf, sizeof(char), DATASIZE, FINFO.f);
+    int ri=createDtPckg(buf,tam,&pack,idN);
+    idN++;
+    //do{
+    p=llwrite(fd,pack,ri);
+    //}while(p!=-1);
+    counter-=tam;
+  }
+  //p=llwrite(fd,endCtrl,re);
+
+  int cl=llclose(fd);
+  if(cl<0){
+    printf("Failed to close connection\n");
+    return -1;
+  }
+  return 0;
+}
+
+
 
 int main(int argc,unsigned char** argv)
 {
 
-  int idN=0;
-  unsigned char* buf=(unsigned char*) malloc(DATASIZE);
+
   // installing alarm
   struct sigaction act;
   act.sa_handler = alarmhandler;
@@ -144,72 +255,19 @@ int main(int argc,unsigned char** argv)
     exit(-1);
   }
 
-  int r = llopen(fd,MODE);
-  printf("r:%i\n",r);
+
+
 
   if(MODE==RECEIVER){
-  	int i;
-  	unsigned char* buffer;
-    buffer=malloc(255);
-    //first ctrl
-    unsigned long fileSize;
-    unsigned char* name;
-    int cbyte,c,r;
-    do{
-      c=llread(fd,buffer);
-      r=dePkgCtrl(buffer,c,&cbyte,&fileSize,&name);
-    }while(cbyte!=2);
-    printf("File name:%s\nfile size:%lu\n",name,fileSize);
-    int counter=(int)fileSize;
-    unsigned char * data;
-    const char* fmode="wb";
-    int f=open_file("pinguim2.gif",fmode);
+    aplRead(fd);
 
-    while(counter>0){
-      printf("Couter:%i\n",counter);
-     c=llread(fd,buffer);
-     r= dePkgDt(buffer,c,&data);
-     fwrite(data, sizeof(char), r, FINFO.f);
-     //TODO se sucesso
-     counter-=r;
-    }
-  	//printChar(buffer,c);
   }
   else if(MODE==WRITER){
-    const char* fpath="pinguim.gif";
-    int tm= strlen(fpath);
-    printf("Name size :%i\n",tm);
-    const char* fmode="rb";
-    int f=open_file(fpath,fmode);
-    printf("file opened with f:%i\n",f);
-    int fs=getFileSize();
-    printf("fs:%i",fs);
-    printf("file size : %lu\n",FINFO.size);
-    //open do ficheiro
-    //guardar o tamanho do ficheiro
-
-    char *startCtrl,*endCtrl;
-    int re =createCtrlPckg(&startCtrl,&endCtrl,FINFO.size,fpath,tm);
-    int p=llwrite(fd,startCtrl,re);
-    int k=0;
-
-    unsigned char* pack;
-    int counter=FINFO.size;
-    while(counter>0){
-      printf("Couter:%i\n",counter);
-      int tam=fread(buf, sizeof(char), DATASIZE, FINFO.f);
-      int ri=createDtPckg(buf,tam,&pack,idN);
-      idN++;
-      int p=llwrite(fd,pack,ri);
-      counter-=tam;
-    }
-    //p=llwrite(fd,endCtrl,re);
+    aplWrite(fd,"pinguim.gif");
 
   }
-char lixo[255];
-	read(fd,lixo,255);
-  int cl=llclose(fd);
-  printf("cl:%i\n",cl);
+
+
 
   sleep(3);
   tcsetattr(fd,TCSANOW,&oldtio);

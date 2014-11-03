@@ -130,7 +130,7 @@ int llread(int fd, char * buffer){
   int esc=0;
   int i=0;
 
-  printf("a comecar a ler...\n");
+  //printf("a comecar a ler...\n");
 
   do{
 
@@ -158,7 +158,7 @@ int llread(int fd, char * buffer){
         char rej_tmp[5];
         createREJ(rej_tmp,0,RECEIVER);
         r=write(fd,rej_tmp,5);
-        printf("\nreceiver sending REJ Ns=0: ");
+        //printf("\nreceiver sending REJ Ns=0: ");
         //printChar(rej_tmp,5);
         return -1;
       }
@@ -176,7 +176,7 @@ int llread(int fd, char * buffer){
         char rej_tmp[5];
         createREJ(rej_tmp,1,RECEIVER);
         r=write(fd,rej_tmp,5);
-        printf("\nreceiver sending REJ Ns=1: ");
+        //printf("\nreceiver sending REJ Ns=1: ");
         //printChar(rej_tmp,5);
         return -1;
       }
@@ -193,7 +193,7 @@ int llread(int fd, char * buffer){
 }
 
 int llwrite(int fd, unsigned char* data,int tm){
-	printf("starting llwrite\n");
+	//printf("starting llwrite\n");
   char rec,ret;
   char buf[255];
   int r, tm2,tm3;
@@ -263,7 +263,7 @@ int llwrite(int fd, unsigned char* data,int tm){
 }
 
 int llclose(int fd){
-printf("entering close\n");
+//printf("entering close\n");
   //config(3,0,fd);
   int r,rec,stateDisc=0,stateUA=0;
   char* buf;
@@ -275,7 +275,7 @@ printf("entering close\n");
     createDISC(writer_disc,MODE);
     do{
       r=write(fd,writer_disc,5);
-		printf("wrote %i bytes\n",r);
+		//printf("wrote %i bytes\n",r);
       alarm(TIMEOUT);
       do{
         r=read(fd,buf,1);
@@ -284,7 +284,7 @@ printf("entering close\n");
           alarm(TIMEOUT);
           rec=buf[0];
           ret=validateDISC(rec,&stateDisc);
-          printf("writer state:0x%x\n",stateDisc);
+          //printf("writer state:0x%x\n",stateDisc);
           nTimeouts=0;
         }
         else if(r==0){
@@ -296,7 +296,7 @@ printf("entering close\n");
           }
         }
       }while(ret==0);
-      printf("ret:%i\n",ret);
+      //printf("ret:%i\n",ret);
     }while( nTimeouts < RETRANSMIT && ret<1);
     alarm(0);
     if(nTimeouts==RETRANSMIT){
@@ -316,12 +316,12 @@ printf("entering close\n");
     alarm(TIMEOUT);
     do{
       r=read(fd,buf,1);
-		perror("error :");
+		//perror("error :");
       if(r==1){
         alarm(TIMEOUT);
         rec=buf[0];
         ret=validateDISC(rec,&stateDisc);
-		printf("state after validate:%i\n",stateDisc);
+		//printf("state after validate:%i\n",stateDisc);
         nTimeouts=0;
       }
       else{

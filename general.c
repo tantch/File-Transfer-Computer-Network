@@ -15,7 +15,7 @@ void printChar(unsigned char* cena,int tam){
 
 void alarmhandler(int signo) {
 
-  printf("alarm handler\n");
+  //printf("alarm handler\n");
   alarm_flag=1;
 
 }

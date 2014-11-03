@@ -20,14 +20,16 @@ int createDtPckg(unsigned char* data,unsigned long dataSz,unsigned char** pack,i
 
 }
 
-int dePkgDt(unsigned char* pckg,unsigned long pckgSz,unsigned char** data){
+int dePkgDt(unsigned char* pckg,unsigned long pckgSz,unsigned char** data,int * NC){
   (*data)=(unsigned char*)malloc(pckgSz-4);
 
   int i;
+  //if(pckg[0]!=0x01)
+    //return-1;
+    (*NC)=pckg[1];
   for(i=0;i<pckgSz;i++){
     (*data)[i]=pckg[i+4];
   }
-
   return (pckgSz-4);
 }
 
