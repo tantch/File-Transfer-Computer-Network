@@ -21,7 +21,7 @@ int createDtPckg(unsigned char* data,unsigned long dataSz,unsigned char** pack,i
 }
 
 int dePkgDt(unsigned char* pckg,unsigned long pckgSz,unsigned char** data,int * NC){
-  (*data)=(unsigned char*)malloc(pckgSz-4);
+  //(*data)=(unsigned char*)malloc(pckgSz-4);
 
   int i;
   //if(pckg[0]!=0x01)

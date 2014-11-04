@@ -123,7 +123,8 @@ int llopen(int fd,int mode){
 int llread(int fd, char * buffer){
   unsigned char rec;
   int ret=0;
-  unsigned char* buf = (unsigned char*) malloc(255);
+  unsigned char buf[1];
+printf("3\n");
   int r;
   int stateData=0;
   char bccData=0x00;

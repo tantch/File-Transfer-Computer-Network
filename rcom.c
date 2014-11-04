@@ -145,7 +145,7 @@ int aplRead(int fd){
   }
   printf("File name:%s\nfile size:%lu\n",name,fileSize);
   int counter=(int)fileSize;
-  unsigned char * data;
+  unsigned char * data=(unsigned char*)malloc(100-4);
   const char* fmode="wb";
   int f=open_file(name,fmode);
   if(f==0){
@@ -155,13 +155,15 @@ int aplRead(int fd){
   int n;
   int re=0;
   while(counter>0){
-    //printf("Counter:%i\n",counter);
+    printf("Counter:%i\n",counter);
     do{
       c=llread(fd,buffer);
     }while(c<0);
-    re= dePkgDt(buffer,c,&data,&n);
+	printf("1\n");
 
+    re= dePkgDt(buffer,c,&data,&n);
     counter-=re;
+printf("2\n");
     fwrite(data, sizeof(char), re, FINFO.f);
   }
   printf("finished reading \n");

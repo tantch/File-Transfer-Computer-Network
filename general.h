@@ -35,7 +35,7 @@
 #define BIT(N) (0x01<<N)
 
 #define TIMEOUT 3
-#define RETRANSMIT 3
+#define RETRANSMIT 5
 
 
 int nTimeouts;
