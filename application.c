@@ -161,6 +161,7 @@ int aplRead(int fd){
     c=llread(fd,buffer);
   } while(c<0);
   r=dePkgCtrl(buffer,c,&cbyte,&fileSize,&name);
+printf("going for close\n");
   int cl=llclose(fd);
   if(cl<0){
     printf("Error closing connection\n");

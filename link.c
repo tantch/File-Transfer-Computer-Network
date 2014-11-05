@@ -172,7 +172,13 @@ int llwrite(int fd, unsigned char* data,int tm){
 
   do{
     stateRRJ=0;
-    r= write(fd,stuffedData,tm3);
+	int missing=tm3;
+	do{	
+   		r= write(fd,stuffedData,tm3);
+		stuffedData+=r;
+		missing-=r;
+	}while(missing>0);
+	stuffedData-=tm3;
     alarm(TIMEOUT);
     do{
       p=read(fd,buf,1);
@@ -223,8 +229,7 @@ int llwrite(int fd, unsigned char* data,int tm){
 
 int llclose(int fd){
   int r,rec,stateDisc=0,stateUA=0;
-  char* buf;
-  buf=malloc(255);
+  char buf[255];
   int ret=0;
   char writer_ua[5],writer_disc[5],receiver_disc[5];
   if(MODE==WRITER){
