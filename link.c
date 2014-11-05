@@ -128,7 +128,7 @@ int llread(int fd, char * buffer){
         char rr_temp[5];
         createRR(rr_temp,0,RECEIVER);
         r=write(fd,rr_temp,5);
-        //if(verbose)printf("\nreceiver sending RR Ns=0:");
+        if(verbose)printf("\nreceiver sending RR Ns=0:");
         return i-1;
       }
     }
@@ -144,7 +144,7 @@ int llread(int fd, char * buffer){
         char rr_temp[5];
         createRR(rr_temp,1,RECEIVER);
         r=write(fd,rr_temp,5);
-        //if(verbose)printf("\nreceiver sending RR Ns=1: ");
+        if(verbose)printf("\nreceiver sending RR Ns=1: ");
         return i-1;
       }
     }
@@ -332,7 +332,6 @@ int llclose(int fd){
 void BCC2(unsigned char* data, unsigned char* final, int n){
   int i;
   for (i=0;i<n;i++){
-    if(verbose)printf("calculaing xor of 0x%x and 0x%x\n",(*final),data[i]);
     (*final)=data[i]^(*final);
   }
 }

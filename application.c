@@ -109,7 +109,7 @@ int aplRead(int fd){
   int NC=0;
   int i;
   unsigned char* buffer;
-  buffer=malloc(255);
+  buffer=malloc(AINFO.maxSize);
   //first ctrl
   unsigned long fileSize;
   unsigned char* name;

@@ -71,7 +71,7 @@ int main(int argc,unsigned char** argv)
     if(verbose)printf("%x\n",atoi(argv[3]));
   }
   else{
-    AINFO.maxSize=100;
+    AINFO.maxSize=255;
   }
 
 
