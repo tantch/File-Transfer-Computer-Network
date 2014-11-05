@@ -128,7 +128,7 @@ int llread(int fd, char * buffer){
         char rr_temp[5];
         createRR(rr_temp,0,RECEIVER);
         r=write(fd,rr_temp,5);
-        if(verbose)printf("\nreceiver sending RR Ns=0:");
+        //if(verbose)printf("\nreceiver sending RR Ns=0:");
         return i-1;
       }
     }
@@ -144,7 +144,7 @@ int llread(int fd, char * buffer){
         char rr_temp[5];
         createRR(rr_temp,1,RECEIVER);
         r=write(fd,rr_temp,5);
-        if(verbose)printf("\nreceiver sending RR Ns=1: ");
+        //if(verbose)printf("\nreceiver sending RR Ns=1: ");
         return i-1;
       }
     }
@@ -190,7 +190,6 @@ int llwrite(int fd, unsigned char* data,int tm){
         alarm(TIMEOUT);
         rec=buf[0];
         ret=validateRRJ(rec,&stateRRJ);
-        if(verbose)printf("state modified to:%i\n",stateRRJ);
       }
       else{
         ret=0;
@@ -214,11 +213,11 @@ int llwrite(int fd, unsigned char* data,int tm){
   alarm(0);
 
   if(ret==1){
-    Ns=0;
+    Ns=1;
     return 0;
   }
   else if(ret==2){
-    Ns=1;
+    Ns=0;
     return 0;
   }
   else if(ret==3 || ret==4){
@@ -274,7 +273,6 @@ int llclose(int fd){
     alarm(TIMEOUT);
     do{
       r=read(fd,buf,1);
-    //perror("error :");
       if(r==1){
         alarm(TIMEOUT);
         rec=buf[0];
