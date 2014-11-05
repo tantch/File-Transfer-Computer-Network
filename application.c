@@ -131,7 +131,7 @@ int aplRead(int fd){
   }
   if(verbose)printf("File name:%s\nfile size:%lu\n",name,fileSize);
   int counter=(int)fileSize;
-  unsigned char * data = null;
+  unsigned char * data = NULL;
   const char* fmode="wb";
   int f=open_file(name,fmode);
   if(f==0){
@@ -145,7 +145,7 @@ int aplRead(int fd){
     do{
       c=llread(fd,buffer);
     }while(c<0);
-    if(data==null){
+    if(data==NULL){
       data=(unsigned char*)malloc(c-4);
     }
 
