@@ -131,7 +131,7 @@ int aplRead(int fd){
   }
   if(verbose)printf("File name:%s\nfile size:%lu\n",name,fileSize);
   int counter=(int)fileSize;
-  unsigned char * data=(unsigned char*)malloc(100-4);
+  unsigned char * data = null;
   const char* fmode="wb";
   int f=open_file(name,fmode);
   if(f==0){
@@ -145,6 +145,9 @@ int aplRead(int fd){
     do{
       c=llread(fd,buffer);
     }while(c<0);
+    if(data==null){
+      data=(unsigned char*)malloc(c-4);
+    }
 
     re= dePkgDt(buffer,c,&data,&n);
     counter-=re;

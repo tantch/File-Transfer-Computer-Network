@@ -67,7 +67,7 @@ int main(int argc,unsigned char** argv)
     AINFO.filename="pinguim.gif";
   }
   if(argc>3){
-    AINFO.maxSize=atoi(argv[3]);
+    AINFO.maxSize=atoi(argv[3]) -4;
     if(verbose)printf("%x\n",atoi(argv[3]));
   }
   else{
