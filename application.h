@@ -3,23 +3,14 @@
 #ifndef _APP_H
 #define _APP_H
 
-struct fInfo{
-	FILE * f;
-	int size;
-} FINFO;
-struct aInfo{
-	int maxSize;
-	char* filename;
-} AINFO;
-
-int open_file(const char* fpath, char* mode);
-int getFileSize();
-
-int llopen(int fd,int mode);
-int llread(int fd, char * buffer);
-int llwrite(int fd, unsigned char* data,int tm);
-int llclose(int fd);
 
 
+
+int createDtPckg(unsigned char* data,unsigned long dataSz,unsigned char** pack,int n);
+int dePkgDt(unsigned char* pckg,unsigned long pckgSz,unsigned char** data,int* NC);
+int dePkgCtrl(unsigned char* pckg,unsigned long pckgSz,int* start,unsigned long* tamanho,unsigned char** name);
+int createCtrlPckg(unsigned char** start,unsigned char** end,int tamanho,unsigned char* name,unsigned long nameSz);
+int aplRead(int fd);
+int aplWrite(int fd,char* fileName);
 
 #endif

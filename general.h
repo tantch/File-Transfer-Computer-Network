@@ -44,6 +44,18 @@ int alarm_flag;
 int MODE;
 int Ns;
 
+struct fInfo{
+  FILE * f;
+  int size;
+} FINFO;
+struct aInfo{
+  int maxSize;
+  char* filename;
+} AINFO;
+
+int open_file(const char* fpath, char* mode);
+int getFileSize();
+
 
 void printChar(unsigned char* cena,int tam);
 void alarmhandler(int signo);
@@ -54,6 +66,6 @@ void createDISC(unsigned char* set,int mode);
 void createRR(unsigned char* rr,int Nr,int mode);
 void createREJ(unsigned char* rej,int Nr,int mode);
 
-void BCC2(unsigned char* data, unsigned char* final, int n);
+
 
 #endif

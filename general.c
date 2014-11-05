@@ -104,10 +104,33 @@ void createREJ(unsigned char* rej,int Nr,int mode){
 
 }
 
-void BCC2(unsigned char* data, unsigned char* final, int n){
-  int i;
-  for (i=0;i<n;i++){
-    if(verbose)printf("calculaing xor of 0x%x and 0x%x\n",(*final),data[i]);
-    (*final)=data[i]^(*final);
+int open_file(const char* fpath, char* mode){
+
+  FILE * f = fopen( fpath, mode );
+  if (f<=0) return 0;
+  else {
+    FINFO.f=f;
+    return 1;
   }
+
+}
+
+int getFileSize(){
+
+  int size = -1;
+  if( fseek(FINFO.f, 0L, SEEK_END) < 0) {
+    return -1;
+  }
+
+  if( (size = ftell(FINFO.f)) < 0){
+    return -1;
+  }
+  if(fseek(FINFO.f, 0, SEEK_SET)<0){
+    return -1;
+  }
+  FINFO.size = size;
+
+  return 1;
+
+
 }
