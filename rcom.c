@@ -29,7 +29,6 @@ void config(int vtime,int vmin,int fd){
     exit(-1);
   }
 
-  printf("New termios structure set\n");
 }
 
 int destuffing(char sent,char* data,char* bcc,int* escape,int* destufcount){
@@ -130,7 +129,7 @@ int aplRead(int fd){
   int cbyte,c,r;
   r = llopen(fd,MODE);
   if(r<0){
-    printf("Failed to open conection\n");
+    printf("Failed to open connection\n");
     return -1;
   }
 
@@ -143,30 +142,27 @@ int aplRead(int fd){
     printf("Error: first pakage was not start control package\n");
     return -1;
   }
-  printf("File name:%s\nfile size:%lu\n",name,fileSize);
+  if(verbose)printf("File name:%s\nfile size:%lu\n",name,fileSize);
   int counter=(int)fileSize;
   unsigned char * data=(unsigned char*)malloc(100-4);
   const char* fmode="wb";
   int f=open_file(name,fmode);
   if(f==0){
-    printf("Error opening file\n");
+  printf("Error opening file\n");
     return -1;
   }
   int n;
   int re=0;
   while(counter>0){
-    printf("Counter:%i\n",counter);
+    if(verbose)printf("Counter:%i\n",counter);
     do{
       c=llread(fd,buffer);
     }while(c<0);
-	printf("1\n");
 
     re= dePkgDt(buffer,c,&data,&n);
     counter-=re;
-printf("2\n");
     fwrite(data, sizeof(char), re, FINFO.f);
   }
-  printf("finished reading \n");
   char lixo[255];
   read(fd,lixo,255);
 
@@ -187,17 +183,14 @@ int aplWrite(int fd,char* fileName){
   unsigned char* buf=(unsigned char*) malloc(AINFO.maxSize);
   const char* fpath=fileName;
   int tm= strlen(fpath);
-  printf("Name size :%i\n",tm);
   const char* fmode="rb";
   int f=open_file(fpath,fmode);
   if(f==0){
     printf("Failed to open file\n");
     return -1;
   }
-  printf("file opened with f:%i\n",f);
   int fs=getFileSize();
-  printf("fs:%i",fs);
-  printf("file size : %lu\n",FINFO.size);
+  if(verbose)printf("file size : %lu\n",FINFO.size);
   //open do ficheiro
   //guardar o tamanho do ficheiro
   int r = llopen(fd,MODE);
@@ -216,7 +209,7 @@ int aplWrite(int fd,char* fileName){
   unsigned char* pack;
   int counter=FINFO.size;
   while(counter>0){
-    //printf("Counter1:%i\n",counter);
+    if(verbose)printf("Counter1:%i\n",counter);
     int tam=fread(buf, sizeof(char), AINFO.maxSize, FINFO.f);
     int ri=createDtPckg(buf,tam,&pack,idN);
     idN++;
@@ -224,7 +217,7 @@ int aplWrite(int fd,char* fileName){
       p=llwrite(fd,pack,ri);
     }while(p==-1);
     if(p==-2){
-      printf("Timed out \n");
+      if(verbose)printf("Timed out \n");
       return -1;
     }
     counter-=tam;
@@ -232,7 +225,6 @@ int aplWrite(int fd,char* fileName){
   do{
     p=llwrite(fd,endCtrl,re);
   }while(p==-1);
-  printf("finished reading \n");
   int cl=llclose(fd);
   if(cl<0){
     printf("Failed to close connection\n");
@@ -248,6 +240,7 @@ int main(int argc,unsigned char** argv)
 
 
   // installing alarm
+  verbose=1;
   struct sigaction act;
   act.sa_handler = alarmhandler;
   sigemptyset (&act.sa_mask);
@@ -270,14 +263,14 @@ int main(int argc,unsigned char** argv)
 
   if(argc>4){
     AINFO.filename=argv[4];
-    printf("%s\n",argv[4]);
+    if(verbose)printf("%s\n",argv[4]);
   }
   else{
     AINFO.filename="pinguim.gif";
   }
   if(argc>3){
     AINFO.maxSize=atoi(argv[3]);
-    printf("%x\n",atoi(argv[3]));
+    if(verbose)printf("%x\n",atoi(argv[3]));
   }
   else{
     AINFO.maxSize=100;

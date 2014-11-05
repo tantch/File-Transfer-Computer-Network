@@ -39,6 +39,7 @@
 
 
 int nTimeouts;
+int verbose;
 int alarm_flag;
 int MODE;
 int Ns;

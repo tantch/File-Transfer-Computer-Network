@@ -40,10 +40,10 @@ int dePkgCtrl(unsigned char* pckg,unsigned long pckgSz,int* start,unsigned long*
   if(pckg[1]==0x00){
     int i=0;
     *tamanho = (pckg[3]<<24) | (pckg[4]<<16) | (pckg[5]<<8) | (pckg[6]);
-    printf("tamanho = %lu\n",*tamanho);
   }
   else{
     printf("not in order\n");
+    return -1;
   }
   int tm;
   if(pckg[7]==0x01){
@@ -57,6 +57,7 @@ int dePkgCtrl(unsigned char* pckg,unsigned long pckgSz,int* start,unsigned long*
   }
   else{
     printf("not in order\n");
+    return -1;
   }
   return tm;
 }

@@ -9,13 +9,13 @@ Ns=0;
 void printChar(unsigned char* cena,int tam){
   int i;
   for(i=0; i<tam;i++){
-    printf("char[%i]:0x%x\n",i,cena[i]);
+    if(verbose)printf("char[%i]:0x%x\n",i,cena[i]);
   }
 }
 
 void alarmhandler(int signo) {
 
-  //printf("alarm handler\n");
+  if(verbose)printf("alarm handler\n");
   alarm_flag=1;
 
 }
@@ -107,7 +107,7 @@ void createREJ(unsigned char* rej,int Nr,int mode){
 void BCC2(unsigned char* data, unsigned char* final, int n){
   int i;
   for (i=0;i<n;i++){
-    //printf("calculaing xor of 0x%x and 0x%x\n",(*final),data[i]);
+    if(verbose)printf("calculaing xor of 0x%x and 0x%x\n",(*final),data[i]);
     (*final)=data[i]^(*final);
   }
 }

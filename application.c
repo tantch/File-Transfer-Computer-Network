@@ -15,16 +15,13 @@ int open_file(const char* fpath, char* mode){
 int getFileSize(){
 
   int size = -1;
-  printf(" file des:%i\n",FINFO.f);
   if( fseek(FINFO.f, 0L, SEEK_END) < 0) {
     return -1;
   }
 
-  printf("here\n");
   if( (size = ftell(FINFO.f)) < 0){
     return -1;
   }
-  printf("size:%i\n",size);
   if(fseek(FINFO.f, 0, SEEK_SET)<0){
     return -1;
   }
@@ -124,19 +121,16 @@ int llread(int fd, char * buffer){
   unsigned char rec;
   int ret=0;
   unsigned char buf[1];
-printf("3\n");
   int r;
   int stateData=0;
   char bccData=0x00;
   int esc=0;
   int i=0;
 
-  //printf("a comecar a ler...\n");
 
   do{
 
     r = read(fd,buf,1);
-    //printf("R:%i\n",r);
     if(r==1){
       rec=buf[0];
 		if(rec!= 0x7e && (stateData==7 || stateData==10)){
@@ -146,12 +140,10 @@ printf("3\n");
          bccData=0x00;
       }
       ret=validateRcv(rec,&stateData);
-	   // printf("read byte 0x%x\n",rec);
-      //printf("state:%i\n",stateData);
 
     }
   }while(ret==0);
-//printf("bcc is equal to: 0x%x\n",bccData);
+
 
   do{
 
@@ -160,16 +152,14 @@ printf("3\n");
         char rej_tmp[5];
         createREJ(rej_tmp,0,RECEIVER);
         r=write(fd,rej_tmp,5);
-        //printf("\nreceiver sending REJ Ns=0: ");
-        //printChar(rej_tmp,5);
+        if(verbose)printf("\nreceiver sending REJ Ns=0: ");
         return -1;
       }
       else{
         char rr_temp[5];
         createRR(rr_temp,0,RECEIVER);
         r=write(fd,rr_temp,5);
-        //printf("\nreceiver sending RR Ns=0:");
-        //printChar(rr_temp,5);
+        if(verbose)printf("\nreceiver sending RR Ns=0:");
         return i-1;
       }
     }
@@ -178,16 +168,14 @@ printf("3\n");
         char rej_tmp[5];
         createREJ(rej_tmp,1,RECEIVER);
         r=write(fd,rej_tmp,5);
-        //printf("\nreceiver sending REJ Ns=1: ");
-        //printChar(rej_tmp,5);
+        if(verbose)printf("\nreceiver sending REJ Ns=1: ");
         return -1;
       }
       else{
         char rr_temp[5];
         createRR(rr_temp,1,RECEIVER);
         r=write(fd,rr_temp,5);
-        //printf("\nreceiver sending RR Ns=1: ");
-        //printChar(rr_temp,5);
+        if(verbose)printf("\nreceiver sending RR Ns=1: ");
         return i-1;
       }
     }
@@ -195,7 +183,6 @@ printf("3\n");
 }
 
 int llwrite(int fd, unsigned char* data,int tm){
-	//printf("starting llwrite\n");
   char rec,ret;
   char buf[255];
   int r, tm2,tm3;
@@ -208,30 +195,18 @@ int llwrite(int fd, unsigned char* data,int tm){
   int i=0;
   int timeout=0;
   BCC2(data,&bcc,tm);
-  //printf("bcc calculated is 0x%x\n",bcc);
   final=(unsigned char*)malloc(tm+5);
   tm2=completeData(data,final,Ns,tm,bcc);
   stuffedData =(unsigned char *)malloc(AINFO.maxSize*2);
   tm3=stuffing(final,stuffedData,tm2);
 	int p=0;
 
-  /*printf("************\nDATA:\n");
-  printChar(data,tm);
-  printf("************\nFINAL DATA:\n");
-  printChar(final,tm2);
-  printf("************\nSTUFFED DATA:\n");
-  printChar(stuffedData,tm3);*/
-
-
-
   do{
-    //printf("this cycle\n");
     stateRRJ=0;
     r= write(fd,stuffedData,tm3);
     alarm(TIMEOUT);
     do{
       p=read(fd,buf,1);
-      //printf("p:%i\n",p);
       if(p==-1){
         perror("Error:");
         ret=-1;
@@ -240,7 +215,7 @@ int llwrite(int fd, unsigned char* data,int tm){
         alarm(TIMEOUT);
         rec=buf[0];
         ret=validateRRJ(rec,&stateRRJ);
-        //printf("state modified to:%i\n",stateRRJ);
+        if(verbose)printf("state modified to:%i\n",stateRRJ);
       }
       else{
         ret=0;
@@ -253,7 +228,7 @@ int llwrite(int fd, unsigned char* data,int tm){
       }
 
     }while(ret==0);
-    //printf("ntimeouts:%i\n",nTimeouts);
+    if(verbose)printf("ntimeouts:%i\n",nTimeouts);
   }while(nTimeouts<RETRANSMIT && p<1);
   if(nTimeouts==RETRANSMIT){
     nTimeouts=0;
@@ -278,8 +253,6 @@ int llwrite(int fd, unsigned char* data,int tm){
 }
 
 int llclose(int fd){
-  printf("entering close\n");
-  //config(3,0,fd);
   int r,rec,stateDisc=0,stateUA=0;
   char* buf;
 	buf=malloc(255);
@@ -290,7 +263,6 @@ int llclose(int fd){
     createDISC(writer_disc,MODE);
     do{
       r=write(fd,writer_disc,5);
-		//printf("wrote %i bytes\n",r);
       alarm(TIMEOUT);
       do{
         r=read(fd,buf,1);
@@ -299,7 +271,6 @@ int llclose(int fd){
           alarm(TIMEOUT);
           rec=buf[0];
           ret=validateDISC(rec,&stateDisc);
-          //printf("writer state:0x%x\n",stateDisc);
           nTimeouts=0;
         }
         else if(r==0){
@@ -311,7 +282,6 @@ int llclose(int fd){
           }
         }
       }while(ret==0);
-      //printf("ret:%i\n",ret);
     }while( nTimeouts < RETRANSMIT && ret<1);
     alarm(0);
     if(nTimeouts==RETRANSMIT){
@@ -324,11 +294,9 @@ int llclose(int fd){
     createUA(writer_ua,WRITER);
     r=write(fd,writer_ua,5);
     stateDisc=0;
-    printf("leaving close\n");
     return 0;
   }
   else{
-	printf("receiver\n");
     alarm(TIMEOUT);
     do{
       r=read(fd,buf,1);
@@ -337,7 +305,7 @@ int llclose(int fd){
         alarm(TIMEOUT);
         rec=buf[0];
         ret=validateDISC(rec,&stateDisc);
-		//printf("state after validate:%i\n",stateDisc);
+
         nTimeouts=0;
       }
       else{
@@ -382,11 +350,10 @@ int llclose(int fd){
     }while(nTimeouts <= RETRANSMIT && r==0);
 	alarm(0);
     if(nTimeouts==RETRANSMIT){
-      printf("Error. Couldn't establish connection on closing.\n");
+    printf("Error. Couldn't establish connection on closing.\n");
 	nTimeouts=0;
       return -1;
       }
 	nTimeouts=0;
     }
-    printf("leaving close\n");
 }
